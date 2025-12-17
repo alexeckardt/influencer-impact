@@ -23,9 +23,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "@influencer-platform/*": ["../../packages/*/src"]
     },
     "allowJs": true,
     "incremental": true,
