@@ -1,20 +1,36 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { Star, ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface LoginProps {
-  onNavigate: (page: 'home' | 'login' | 'register' | 'search' | 'profile') => void;
-  onLogin: () => void;
+  children?: ReactNode;
 }
 
-export function Login({ onNavigate, onLogin }: LoginProps) {
+export function Login({children, ...props}: LoginProps) {
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const router = useRouter();
+
+  /** 
+   * Handle form submission
+   * @param e Form event
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     // Mock login - in real app would validate credentials
-    onLogin();
+    //onLogin();
   };
+
+  /**
+   * Navigate to Register Page
+   */
+  const handleToRegisterClick = () => {
+    router.push('./register');
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -23,7 +39,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button
-              onClick={() => onNavigate('home')}
+              onClick={() => router.push('./')}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <Star className="w-8 h-8 text-blue-600" fill="currentColor" />
@@ -37,7 +53,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => router.push('./')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -45,7 +61,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
           </button>
 
           <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-            <h2 className="text-3xl mb-2 text-center">Welcome Back</h2>
+            <h2 className="text-3xl mb-2 text-center text-red-600">Welcome Back</h2>
             <p className="text-gray-600 text-center mb-8">
               Sign in to access influencer reviews
             </p>
@@ -105,7 +121,7 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
             <div className="mt-6 text-center">
               <span className="text-gray-600">Don't have an account? </span>
               <button
-                onClick={() => onNavigate('register')}
+                onClick={handleToRegisterClick}
                 className="text-blue-600 hover:text-blue-700"
               >
                 Register here

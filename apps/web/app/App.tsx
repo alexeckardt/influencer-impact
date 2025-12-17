@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Home } from './components/Home';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
-import { InfluencerProfile } from './components/InfluencerProfile';
+import { InfluencerProfile } from '../../components/InfluencerProfile';
 import { SearchInfluencers } from './components/SearchInfluencers';
 
 type Page = 'home' | 'login' | 'register' | 'search' | 'profile';
