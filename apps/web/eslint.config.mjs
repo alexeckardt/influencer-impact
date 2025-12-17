@@ -1,6 +1,5 @@
-import type { ESLintConfig } from 'eslint';
-
-const config: ESLintConfig = {
+/** @type {import('eslint').Linter.Config} */
+const config = {
   extends: ['next/core-web-vitals', 'next/typescript'],
   rules: {
     'react-hooks/rules-of-hooks': 'error',
