@@ -1,0 +1,26 @@
+{
+  "name": "influencer-review-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for Influencer Review Platform - frontend, background jobs, and shared utilities",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "type-check": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "prettier": "^3",
+    "turbo": "^2",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@9.6.0"
+}

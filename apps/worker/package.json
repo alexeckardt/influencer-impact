@@ -1,0 +1,29 @@
+{
+  "name": "@influencer-platform/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "dotenv -e .env.local -- tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node --env-file=.env.local dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@influencer-platform/db": "workspace:*",
+    "@influencer-platform/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.38.0",
+    "dotenv": "^17.2.3",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
