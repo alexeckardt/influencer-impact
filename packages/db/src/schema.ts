@@ -1,0 +1,150 @@
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  boolean,
+  integer,
+  timestamp,
+  numeric,
+  check,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+
+// ============================================================================
+// Users Table (auth-managed, linked to Supabase Auth)
+// ============================================================================
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey(),
+    username: varchar('username', { length: 255 }).notNull().unique(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    fullName: varchar('full_name', { length: 255 }),
+    avatarUrl: text('avatar_url'),
+    bio: text('bio'),
+    role: varchar('role', {
+      enum: ['user', 'moderator', 'admin'],
+    })
+      .default('user')
+      .notNull(),
+    isVerified: boolean('is_verified').default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    usernameIdx: uniqueIndex('users_username_idx').on(table.username),
+    emailIdx: uniqueIndex('users_email_idx').on(table.email),
+  })
+);
+
+// ============================================================================
+// Influencers Table
+// ============================================================================
+export const influencers = pgTable('influencers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  bio: text('bio'),
+  primaryNiche: varchar('primary_niche', { length: 255 }).notNull(),
+  verified: boolean('verified').default(false),
+  profileImageUrl: text('profile_image_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+// ============================================================================
+// Influencer Handles (social media accounts)
+// ============================================================================
+export const influencerHandles = pgTable(
+  'influencer_handles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    influencerId: uuid('influencer_id')
+      .notNull()
+      .references(() => influencers.id, { onDelete: 'cascade' }),
+    platform: varchar('platform', {
+      enum: ['twitter', 'instagram', 'tiktok', 'youtube'],
+    }).notNull(),
+    username: varchar('username', { length: 255 }).notNull(),
+    url: text('url').notNull(),
+    followerCount: integer('follower_count').default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    influencerPlatformUnique: uniqueIndex('influencer_handles_influencer_platform_unique').on(
+      table.influencerId,
+      table.platform
+    ),
+  })
+);
+
+// ============================================================================
+// Reviews Table
+// ============================================================================
+export const reviews = pgTable(
+  'reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    influencerId: uuid('influencer_id')
+      .notNull()
+      .references(() => influencers.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: varchar('title', { length: 255 }).notNull(),
+    content: text('content').notNull(),
+    rating: integer('rating').notNull(),
+    sentiment: varchar('sentiment', { enum: ['positive', 'neutral', 'negative'] }),
+    isAnonymous: boolean('is_anonymous').default(false),
+    helpfulCount: integer('helpful_count').default(0),
+    unhelpfulCount: integer('unhelpful_count').default(0),
+    status: varchar('status', {
+      enum: ['published', 'draft', 'flagged'],
+    })
+      .default('draft')
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    ratingCheck: check('rating_check', sql`${table.rating} >= 1 AND ${table.rating} <= 5`),
+  })
+);
+
+// ============================================================================
+// Review Labels (NLP-derived, for future use)
+// ============================================================================
+export const reviewLabels = pgTable('review_labels', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reviewId: uuid('review_id')
+    .notNull()
+    .references(() => reviews.id, { onDelete: 'cascade' }),
+  labelType: varchar('label_type', {
+    enum: ['sentiment', 'topic', 'professionalism', 'authenticity'],
+  }).notNull(),
+  labelValue: varchar('label_value', { length: 100 }).notNull(),
+  confidence: numeric('confidence', { precision: 3, scale: 2 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+// ============================================================================
+// Influencer Stats (Denormalized aggregates, updated by background jobs)
+// ============================================================================
+export const influencerStats = pgTable('influencer_stats', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  influencerId: uuid('influencer_id')
+    .notNull()
+    .unique()
+    .references(() => influencers.id, { onDelete: 'cascade' }),
+  totalReviews: integer('total_reviews').default(0),
+  averageRating: numeric('average_rating', { precision: 3, scale: 2 }),
+  sentimentPositive: integer('sentiment_positive').default(0),
+  sentimentNeutral: integer('sentiment_neutral').default(0),
+  sentimentNegative: integer('sentiment_negative').default(0),
+  engagementScore: numeric('engagement_score', { precision: 5, scale: 2 }).default('0'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
