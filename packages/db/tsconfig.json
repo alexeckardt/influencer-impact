@@ -10,10 +10,13 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@influencer-platform/*": ["../../packages/*/src"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
