@@ -93,14 +93,15 @@ async function aggregateInfluencerStats() {
       // Calculate aggregates
       const totalReviews = reviews.length;
       const averageRating =
-        reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / totalReviews;
-      const sentimentCounts = reviews.reduce(
-        (counts: any, r: any) => {
-          if (r.sentiment) counts[r.sentiment]++;
-          return counts;
-        },
-        { positive: 0, neutral: 0, negative: 0 }
-      );
+        reviews.reduce((sum: number, r: Record<string, unknown>) => sum + (r.rating as number), 0) / totalReviews;
+      // TODO: Use sentimentCounts when updating stats
+      // const _sentimentCounts = reviews.reduce(
+      //   (counts: Record<string, number>, r: Record<string, unknown>) => {
+      //     if (r.sentiment) counts[r.sentiment as string]++;
+      //     return counts;
+      //   },
+      //   { positive: 0, neutral: 0, negative: 0 }
+      // );
 
       // Update stats
       // TODO: Use updateInfluencerStats from @influencer-platform/db

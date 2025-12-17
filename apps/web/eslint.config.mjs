@@ -1,12 +1,14 @@
 import js from '@eslint/js';
 import next from 'eslint-config-next';
 
-export default [
+const config = [
   js.configs.recommended,
-  next,
+  ...next,
   {
     rules: {
       'react-hooks/rules-of-hooks': 'error',
     },
   },
 ];
+
+export default config;
