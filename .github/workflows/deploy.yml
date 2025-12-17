@@ -1,0 +1,38 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Production
+        uses: vercel/action@master
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: --prod
+          working-directory: apps/web
+          scope: ${{ secrets.VERCEL_ORG_SLUG }}
+
+  deploy-worker:
+    runs-on: ubuntu-latest
+    # Placeholder for worker deployment (Cloud Run, Lambda, etc.)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Placeholder - Deploy worker
+        run: |
+          echo "Worker deployment not yet configured"
+          echo "Next steps:"
+          echo "1. Set up Cloud Run/Lambda deployment"
+          echo "2. Configure container registry credentials"
+          echo "3. Update this workflow with deployment steps"
