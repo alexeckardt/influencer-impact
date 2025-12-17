@@ -20,7 +20,10 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^20",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
     "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "tsx": "^4",

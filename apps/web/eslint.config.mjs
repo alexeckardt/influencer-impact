@@ -1,9 +1,12 @@
-/** @type {import('eslint').Linter.Config} */
-const config = {
-  extends: ['next/core-web-vitals', 'next/typescript'],
-  rules: {
-    'react-hooks/rules-of-hooks': 'error',
-  },
-};
+import js from '@eslint/js';
+import next from 'eslint-config-next';
 
-export default config;
+export default [
+  js.configs.recommended,
+  next,
+  {
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+    },
+  },
+];
