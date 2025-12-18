@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 
 interface InfluencerProfileProps {
   influencerId: string | null;
-  onBack: () => void;
-  onLogout: () => void;
 }
 
 // Mock data
@@ -137,13 +135,15 @@ const influencersData: { [key: string]: any } = {
   },
 };
 
-export function InfluencerProfile({ influencerId, onBack, onLogout }: InfluencerProfileProps) {
+export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const influencer = influencerId ? influencersData[influencerId] : null;
 
   const router = useRouter();
 
-
+  const onBack = () => {
+    router.back();
+  }
 
 
   if (!influencer) {
@@ -164,28 +164,6 @@ export function InfluencerProfile({ influencerId, onBack, onLogout }: Influencer
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <Star className="w-8 h-8 text-blue-600" fill="currentColor" />
-              <span className="text-xl">InfluencerInsight</span>
-            </button>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <button

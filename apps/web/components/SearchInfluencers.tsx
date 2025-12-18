@@ -1,11 +1,11 @@
+'use client';
+
 import { useState } from 'react';
 import { Star, Search, Filter, LogOut, Instagram, Youtube, Twitter, TrendingUp } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { useRouter } from 'next/navigation';
 
 interface SearchInfluencersProps {
-  onNavigate: (page: 'home' | 'login' | 'register' | 'search' | 'profile') => void;
-  onViewProfile: (influencerId: string) => void;
-  onLogout: () => void;
 }
 
 // On this page, would be cool to have "My Influencers" showing - idea here: https://docs.google.com/document/d/1hbp4jKx5jPMFJfIQzeSygFezd_c7GsXw62bF0n14gmw/edit?usp=sharing
@@ -148,7 +148,7 @@ const locations = [
   'Canada',
 ];
 
-export function SearchInfluencers({ onNavigate, onViewProfile, onLogout }: SearchInfluencersProps) {
+export function SearchInfluencers({}: SearchInfluencersProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNiche, setSelectedNiche] = useState('All Niches');
   const [minRating, setMinRating] = useState(0);
@@ -169,30 +169,16 @@ export function SearchInfluencers({ onNavigate, onViewProfile, onLogout }: Searc
     return matchesSearch && matchesNiche && matchesRating && matchesLocation && matchesEngagement;
   });
 
+  const router = useRouter();
+
+  const onViewProfile = (influencerId: string) => {
+    // Navigate to influencer profile page
+    console.log(`View profile for influencer ID: ${influencerId}`);
+    router.push(`/influencer/${influencerId}`);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={() => onNavigate('home')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <Star className="w-8 h-8 text-blue-600" fill="currentColor" />
-              <span className="text-xl">InfluencerInsight</span>
-            </button>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search and Filters */}
         <div className="mb-8">
