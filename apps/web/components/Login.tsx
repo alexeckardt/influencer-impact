@@ -1,6 +1,9 @@
+'use client';
+
 import { ReactNode, useState } from 'react';
 import { Star, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 interface LoginProps {
   children?: ReactNode;
@@ -12,6 +15,7 @@ export function Login({children, ...props}: LoginProps) {
   const [password, setPassword] = useState('');
 
   const router = useRouter();
+  const { signIn } = useAuth();
 
   /** 
    * Handle form submission
@@ -20,8 +24,11 @@ export function Login({children, ...props}: LoginProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    //Use the auth context to sign in the user
+    signIn({ id: '1', email, name: 'Demo User' });
+
     // Mock login - in real app would validate credentials
-    //onLogin();
+    router.push('/');
   };
 
   /**

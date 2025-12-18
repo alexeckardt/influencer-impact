@@ -1,11 +1,14 @@
+'use client';
+
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth-context';
 
 interface HomeProps {
   onNavigate: (page: 'home' | 'login' | 'register' | 'search' | 'profile') => void;
-  isLoggedIn: boolean;
 }
 
-export function Home({ onNavigate, isLoggedIn }: HomeProps) {
+export function Home({ onNavigate }: HomeProps) {
+  const { isLoggedIn } = useAuth();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {

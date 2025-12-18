@@ -2,11 +2,12 @@
 
 import { Star } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 
 export function NavBar() {
     const router = useRouter();
-    const isLoggedIn = false; // Replace with actual authentication logic
+    const { isLoggedIn, user } = useAuth();
 
     return (
         <nav className="border-b border-gray-200 bg-white w-full">
