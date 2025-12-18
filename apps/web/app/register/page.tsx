@@ -3,6 +3,8 @@ import { InfluencerProfile } from '@/components/InfluencerProfile';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Register } from '@/components/Register';
+import { NavBar } from '@/components/NavBar';
+import { Footer } from '@/components/Footer';
 
 export default function ProfilePage() {
 
@@ -14,9 +16,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <Register onRegister={handleRegister}
-    />
+    <main className="bg-gray-50 flex min-h-screen flex-col items-center">
+      <NavBar />
+      <Register onRegister={handleRegister} />
+      <Footer />
     </main>
   );
 }

@@ -1,12 +1,16 @@
 'use client';
+import { Footer } from '@/components/Footer';
 import { Login } from '@/components/Login';
+import { NavBar } from '@/components/NavBar';
 import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+    <main className="bg-gray-50 flex min-h-screen flex-col items-center">
+      <NavBar />
       <Login />
+      <Footer />
     </main>
   );
 }

@@ -35,22 +35,7 @@ export function Register({ onRegister }: RegisterProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="border-b border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <Star className="w-8 h-8 text-blue-600" fill="currentColor" />
-              <span className="text-xl">InfluencerInsight</span>
-            </button>
-          </div>
-        </div>
-      </nav>
-
+    <div>
       {/* Registration Form */}
       <div className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">

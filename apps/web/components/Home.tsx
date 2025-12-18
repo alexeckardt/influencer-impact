@@ -1,50 +1,16 @@
 import { Star, Shield, Users, TrendingUp } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { useRouter } from 'next/navigation';
 
 interface HomeProps {
-  onNavigate: (page: 'home' | 'login' | 'register' | 'search' | 'profile') => void;
-  isLoggedIn: boolean;
 }
 
-export function Home({ onNavigate, isLoggedIn }: HomeProps) {
+export function Home({}: HomeProps) {
+
+  const router = useRouter();
+
   return (
-    <div className="min-h-screen">
-      {/* Navigation */}
-      <nav className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <Star className="w-8 h-8 text-blue-600" fill="currentColor" />
-              <span className="text-xl">InfluencerInsight</span>
-            </div>
-            <div className="flex gap-3">
-              {isLoggedIn ? (
-                <button
-                  onClick={() => onNavigate('search')}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Browse Reviews
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => onNavigate('login')}
-                    className="px-6 py-2 text-gray-700 hover:text-gray-900 transition-colors"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => onNavigate('register')}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Register
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen w-full">
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
@@ -58,7 +24,7 @@ export function Home({ onNavigate, isLoggedIn }: HomeProps) {
                 The first platform where verified PR professionals can share honest, anonymous reviews about working with influencers. Make informed decisions backed by real experiences.
               </p>
               <button
-                onClick={() => onNavigate('register')}
+                onClick={() => router.push('/register')}
                 className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Get Started
@@ -170,57 +136,13 @@ export function Home({ onNavigate, isLoggedIn }: HomeProps) {
             Start making better influencer partnership decisions today
           </p>
           <button
-            onClick={() => onNavigate('register')}
+            onClick={() => router.push('/register')}
             className="px-8 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors"
           >
             Create Your Free Account
           </button>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 text-white mb-4">
-                <Star className="w-6 h-6 text-blue-500" fill="currentColor" />
-                <span>InfluencerInsight</span>
-              </div>
-              <p className="text-sm">
-                Empowering PR professionals with transparent influencer reviews.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">How It Works</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Guidelines</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-sm text-center">
-            © 2024 InfluencerInsight. All rights reserved.
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
