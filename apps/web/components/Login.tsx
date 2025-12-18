@@ -61,7 +61,7 @@ export function Login({children, ...props}: LoginProps) {
           </button>
 
           <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-            <h2 className="text-3xl mb-2 text-center text-red-600">Welcome Back</h2>
+            <h2 className="text-3xl mb-2 text-center">Welcome Back</h2>
             <p className="text-gray-600 text-center mb-8">
               Sign in to access influencer reviews
             </p>

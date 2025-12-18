@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Star, ArrowLeft, LogOut, Instagram, Youtube, Twitter, TrendingUp, MessageSquare, DollarSign, Clock, ThumbsUp, ExternalLink } from 'lucide-react';
 import { ReviewModal } from './ReviewModal';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { useRouter } from 'next/navigation';
 
 interface InfluencerProfileProps {
   influencerId: string | null;
-  onNavigate: (page: 'home' | 'login' | 'register' | 'search' | 'profile') => void;
   onBack: () => void;
   onLogout: () => void;
 }
@@ -137,9 +137,14 @@ const influencersData: { [key: string]: any } = {
   },
 };
 
-export function InfluencerProfile({ influencerId, onNavigate, onBack, onLogout }: InfluencerProfileProps) {
+export function InfluencerProfile({ influencerId, onBack, onLogout }: InfluencerProfileProps) {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const influencer = influencerId ? influencersData[influencerId] : null;
+
+  const router = useRouter();
+
+
+
 
   if (!influencer) {
     return (
@@ -164,7 +169,7 @@ export function InfluencerProfile({ influencerId, onNavigate, onBack, onLogout }
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button
-              onClick={() => onNavigate('home')}
+              onClick={() => router.push('/')}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <Star className="w-8 h-8 text-blue-600" fill="currentColor" />

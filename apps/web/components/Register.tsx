@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Star, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface RegisterProps {
-  onNavigate: (page: 'home' | 'login' | 'register' | 'search' | 'profile') => void;
   onRegister: () => void;
 }
 
-export function Register({ onNavigate, onRegister }: RegisterProps) {
+export function Register({ onRegister }: RegisterProps) {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -18,6 +18,8 @@ export function Register({ onNavigate, onRegister }: RegisterProps) {
     yearsExperience: '',
     linkedinUrl: '',
   });
+
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -39,7 +41,7 @@ export function Register({ onNavigate, onRegister }: RegisterProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button
-              onClick={() => onNavigate('home')}
+              onClick={() => router.push('/')}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <Star className="w-8 h-8 text-blue-600" fill="currentColor" />
@@ -53,7 +55,7 @@ export function Register({ onNavigate, onRegister }: RegisterProps) {
       <div className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => router.push('/')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />

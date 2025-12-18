@@ -18,8 +18,8 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@influencer-platform/db": ["packages/db/src/index.ts"],
-      "@influencer-platform/shared": ["packages/shared/src/index.ts"]
+      "@influencer-platform/db": ["./packages/db/src/index.ts"],
+      "@influencer-platform/shared": ["./packages/shared/src/index.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
