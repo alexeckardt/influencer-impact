@@ -1,18 +1,16 @@
 'use client';
-
 import { Footer } from '@/components/Footer';
-import { Home } from '@/components/Home';
+import { Login } from '@/components/Login';
 import { NavBar } from '@/components/NavBar';
-import { useAuth } from '@/lib/auth-context';
+import { useEffect, useState } from 'react';
 
-export default function BasePage() {
-  const { isLoggedIn } = useAuth();
+export default function LoginPage() {
 
   return (
     <main className="bg-gray-50 flex min-h-screen flex-col items-center">
       <NavBar />
-      <Home />
+      <Login />
       <Footer />
     </main>
   );
-};
+}

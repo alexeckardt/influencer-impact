@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
+import { Inter } from 'next/font/google';
+import { AuthProvider } from '@/lib/auth-context';
+import './globals.css';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Influencer Review Platform',
@@ -12,8 +16,10 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={inter.className}>
+      <body className="font-sans">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

@@ -14,7 +14,7 @@
     "typecheck": "turbo run typecheck",
     "type-check": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean"
   },
   "devDependencies": {
     "@types/node": "^20",
