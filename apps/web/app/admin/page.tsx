@@ -22,6 +22,12 @@ export default function AdminDashboard() {
     isOpen: false,
     prospect: null
   });
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; title: string; message: string; details?: string }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    details: ''
+  });
   const [rejectionReason, setRejectionReason] = useState('');
   
   const supabase = createClient();
@@ -58,14 +64,37 @@ export default function AdminDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to approve prospect');
+        const errorData = await response.text();
+        let errorMessage = 'Failed to approve prospect';
+        let errorDetails = '';
+        
+        try {
+          const parsedError = JSON.parse(errorData);
+          errorMessage = parsedError.error || errorMessage;
+          errorDetails = parsedError.details || '';
+        } catch {
+          errorDetails = errorData;
+        }
+
+        setErrorModal({
+          isOpen: true,
+          title: 'Approval Failed',
+          message: errorMessage,
+          details: errorDetails
+        });
+        return;
       }
 
       await fetchProspects();
       setApproveModal({ isOpen: false, prospect: null });
     } catch (error) {
       console.error('Error approving prospect:', error);
-      alert('Failed to approve prospect. Please try again.');
+      setErrorModal({
+        isOpen: true,
+        title: 'Network Error',
+        message: 'Failed to approve prospect. Please check your connection and try again.',
+        details: error instanceof Error ? error.message : String(error)
+      });
     } finally {
       setActionLoading(null);
     }
@@ -83,7 +112,25 @@ export default function AdminDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to reject prospect');
+        const errorData = await response.text();
+        let errorMessage = 'Failed to reject prospect';
+        let errorDetails = '';
+        
+        try {
+          const parsedError = JSON.parse(errorData);
+          errorMessage = parsedError.error || errorMessage;
+          errorDetails = parsedError.details || '';
+        } catch {
+          errorDetails = errorData;
+        }
+
+        setErrorModal({
+          isOpen: true,
+          title: 'Rejection Failed',
+          message: errorMessage,
+          details: errorDetails
+        });
+        return;
       }
 
       await fetchProspects();
@@ -91,7 +138,12 @@ export default function AdminDashboard() {
       setRejectionReason('');
     } catch (error) {
       console.error('Error rejecting prospect:', error);
-      alert('Failed to reject prospect. Please try again.');
+      setErrorModal({
+        isOpen: true,
+        title: 'Network Error',
+        message: 'Failed to reject prospect. Please check your connection and try again.',
+        details: error instanceof Error ? error.message : String(error)
+      });
     } finally {
       setActionLoading(null);
     }
@@ -332,6 +384,53 @@ export default function AdminDashboard() {
                 disabled={actionLoading === rejectModal.prospect.id}
               >
                 {actionLoading === rejectModal.prospect.id ? 'Rejecting...' : 'Reject Application'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-lg font-semibold text-red-600 flex items-center">
+                <XCircle className="h-5 w-5 mr-2" />
+                {errorModal.title}
+              </h3>
+              <button
+                onClick={() => setErrorModal({ isOpen: false, title: '', message: '', details: '' })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Error Message:</h4>
+                <p className="text-gray-700 bg-red-50 p-3 rounded-lg border border-red-200">
+                  {errorModal.message}
+                </p>
+              </div>
+              
+              {errorModal.details && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Technical Details:</h4>
+                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200 font-mono whitespace-pre-wrap overflow-x-auto">
+                    {errorModal.details}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setErrorModal({ isOpen: false, title: '', message: '', details: '' })}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
