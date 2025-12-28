@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseAdmin, approveProspectUser } from '@/lib/admin';
 import { getCurrentUser } from '@/lib/supabase/server';
+import { sendApprovalEmail } from '@/lib/emails';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,10 +32,19 @@ export async function POST(req: NextRequest) {
     // Approve the prospect user
     const approvedUser = await approveProspectUser(prospectId, user.id);
 
+    // Send approval email
+    if (approvedUser.user.email && approvedUser.tempPassword) {
+      await sendApprovalEmail(
+        approvedUser.user.email,
+        approvedUser.user.user_metadata?.first_name || 'User',
+        approvedUser.tempPassword
+      );
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: 'Prospect approved successfully',
-      userId: approvedUser.id
+      userId: approvedUser.user.id,
     });
   } catch (error) {
     console.error('Error approving prospect:', error);

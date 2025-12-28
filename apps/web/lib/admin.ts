@@ -175,7 +175,10 @@ export async function approveProspectUser(prospectId: string, approverId: string
   }
 
   console.log('approveProspectUser: Approval process completed successfully');
-  return authUser.user;
+  return {
+    user: authUser.user,
+    tempPassword, // Include the temporary password in the return object
+  };
 }
 
 /**

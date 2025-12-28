@@ -12,8 +12,6 @@ export function Register({ onRegister }: RegisterProps) {
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
-    confirmPassword: '',
     company: '',
     jobTitle: '',
     yearsExperience: '',
@@ -35,15 +33,6 @@ export function Register({ onRegister }: RegisterProps) {
   };
 
   const validateForm = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-    
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return false;
-    }
     
     if (formData.linkedinUrl && !formData.linkedinUrl.includes('linkedin.com')) {
       setError('Please provide a valid LinkedIn URL');
@@ -51,15 +40,6 @@ export function Register({ onRegister }: RegisterProps) {
     }
     
     return true;
-  };
-
-  const hashPassword = async (password: string): Promise<string> => {
-    // Simple client-side hashing - in production, use proper password hashing
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,8 +53,6 @@ export function Register({ onRegister }: RegisterProps) {
     setLoading(true);
 
     try {
-      // Hash the password (in production, this should be done server-side)
-      const hashedPassword = await hashPassword(formData.password);
       
       // Insert into prospect_users table
       const { error } = await supabase
@@ -83,7 +61,6 @@ export function Register({ onRegister }: RegisterProps) {
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
-          password: hashedPassword,
           company: formData.company || null,
           job_title: formData.jobTitle || null,
           years_experience: formData.yearsExperience || null,
@@ -95,6 +72,7 @@ export function Register({ onRegister }: RegisterProps) {
           setError('An account with this email already exists. Please use a different email or contact support.');
         } else {
           setError('Failed to submit application. Please try again.');
+          console.error('Registration error:', error);
         }
         return;
       }
@@ -221,43 +199,10 @@ export function Register({ onRegister }: RegisterProps) {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                       placeholder="you@company.com"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Use your professional email address</p>
+                    <p className="text-xs text-gray-500 mt-1">Use your professional email address.</p>
+                    <p className="text-xs text-gray-500 mt-1">On approval, we will send you an email with instructions on how to sign-in.</p>
                   </div>
                   
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="password" className="block text-sm mb-2">
-                        Password *
-                      </label>
-                      <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                        disabled={loading}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="confirmPassword" className="block text-sm mb-2">
-                        Confirm Password *
-                      </label>
-                      <input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        required
-                        disabled={loading}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -267,7 +212,7 @@ export function Register({ onRegister }: RegisterProps) {
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="company" className="block text-sm mb-2">
-                      Company/Organization
+                      Company/Organization *
                     </label>
                     <input
                       id="company"
@@ -276,6 +221,7 @@ export function Register({ onRegister }: RegisterProps) {
                       value={formData.company}
                       onChange={handleChange}
                       disabled={loading}
+                      required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                       placeholder="Acme PR Agency"
                     />
@@ -284,7 +230,7 @@ export function Register({ onRegister }: RegisterProps) {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="jobTitle" className="block text-sm mb-2">
-                        Job Title
+                        Job Title *
                       </label>
                       <input
                         id="jobTitle"
@@ -293,13 +239,14 @@ export function Register({ onRegister }: RegisterProps) {
                         value={formData.jobTitle}
                         onChange={handleChange}
                         disabled={loading}
+                        required
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                         placeholder="PR Manager"
                       />
                     </div>
                     <div>
                       <label htmlFor="yearsExperience" className="block text-sm mb-2">
-                        Years of Experience
+                        Years of Experience *
                       </label>
                       <select
                         id="yearsExperience"
@@ -307,6 +254,7 @@ export function Register({ onRegister }: RegisterProps) {
                         value={formData.yearsExperience}
                         onChange={handleChange}
                         disabled={loading}
+                        required
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                       >
                         <option value="">Select...</option>
