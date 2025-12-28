@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 
 // Define the prospect user type directly since our Database type might not be complete
 type ProspectUser = {
@@ -26,27 +25,24 @@ type ProspectUser = {
  */
 
 export async function createServerSupabaseAdmin() {
-  const cookieStore = await cookies();
-  
-  return createServerClient(
+  // Check for required environment variables
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is missing');
+  }
+
+  if (!process.env.SUPABASE_SB_SECRET) {
+    throw new Error('SUPABASE_SB_SECRET environment variable is missing');
+  }
+
+  // Use createClient for admin operations with secret key - no cookies needed
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role key for admin operations
+    process.env.SUPABASE_SB_SECRET!, // Admin secret key for elevated operations
     {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     }
   );
@@ -57,13 +53,13 @@ export async function createServerSupabaseAdmin() {
  */
 export async function getPendingProspectUsers(): Promise<ProspectUser[]> {
   const supabase = await createServerSupabaseAdmin();
-  
+
   const { data, error } = await supabase
     .from('prospect_users')
     .select('*')
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
-    
+
   if (error) throw error;
   return data as ProspectUser[];
 }
@@ -72,47 +68,72 @@ export async function getPendingProspectUsers(): Promise<ProspectUser[]> {
  * Approve a prospect user and create their Supabase auth account
  */
 export async function approveProspectUser(prospectId: string, approverId: string) {
+  console.log('approveProspectUser: Starting approval process for prospect:', prospectId);
+
   const supabase = await createServerSupabaseAdmin();
-  
-  // Get prospect user details
+
+  // Get prospect user details first to validate and get email
+  console.log('approveProspectUser: Fetching prospect data');
   const { data: prospectData, error: prospectError } = await supabase
     .from('prospect_users')
     .select('*')
     .eq('id', prospectId)
     .single();
-    
-  if (prospectError || !prospectData) {
+
+  if (prospectError) {
+    console.error('approveProspectUser: Error fetching prospect:', prospectError);
+    throw new Error(`Failed to fetch prospect: ${prospectError.message}`);
+  }
+
+  if (!prospectData) {
+    console.error('approveProspectUser: Prospect not found');
     throw new Error('Prospect user not found');
   }
-  
+
   const prospect = prospectData as ProspectUser;
-  
+  console.log('approveProspectUser: Found prospect:', prospect.email);
+
   if (prospect.status !== 'pending') {
+    console.error('approveProspectUser: Prospect status is not pending:', prospect.status);
     throw new Error('Prospect user has already been reviewed');
   }
-  
-  // Create Supabase auth user
+
+  // STEP 1: Create Supabase auth user FIRST
+  console.log('approveProspectUser: Creating Supabase auth user first');
+  const tempPassword = prospect.email + '_temp_' + Math.random().toString(36).substring(7);
+
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
     email: prospect.email,
-    password: prospect.email + '_temp_' + Math.random().toString(36).substring(7), // Generate temp password
+    password: tempPassword,
     email_confirm: true,
     user_metadata: {
       first_name: prospect.first_name,
       last_name: prospect.last_name,
     }
   });
-  
-  if (authError || !authUser.user) {
-    throw new Error(`Failed to create auth user: ${authError?.message}`);
+
+  if (authError) {
+    console.error('approveProspectUser: Auth user creation failed:', authError);
+    throw new Error(`Failed to create auth user: ${authError.message}`);
   }
-  
-  // Create user in our users table
+
+  if (!authUser.user) {
+    console.error('approveProspectUser: No user returned from auth creation');
+    throw new Error('Failed to create auth user: No user returned');
+  }
+
+  console.log('approveProspectUser: Auth user created with ID:', authUser.user.id);
+
+  // STEP 2: Now insert into users table using the auth user ID
+  console.log('approveProspectUser: Creating user profile');
+  const username = `${prospect.first_name.toLowerCase()}.${prospect.last_name.toLowerCase()}`;
+
   const { error: userError } = await supabase
     .from('users')
     .insert({
-      id: authUser.user.id,
+      id: authUser.user.id, // Use the auth user ID
       prospect_user_id: prospect.id,
-      username: `${prospect.first_name.toLowerCase()}.${prospect.last_name.toLowerCase()}`,
+      username: username,
       email: prospect.email,
       first_name: prospect.first_name,
       last_name: prospect.last_name,
@@ -124,14 +145,19 @@ export async function approveProspectUser(prospectId: string, approverId: string
       approved_at: new Date().toISOString(),
       approved_by: approverId,
     });
-    
+
   if (userError) {
+    console.error('approveProspectUser: User profile creation failed:', userError);
     // If user creation fails, clean up auth user
+    console.log('approveProspectUser: Cleaning up auth user due to profile creation failure');
     await supabase.auth.admin.deleteUser(authUser.user.id);
     throw new Error(`Failed to create user profile: ${userError.message}`);
   }
-  
-  // Update prospect status
+
+  console.log('approveProspectUser: User profile created successfully');
+
+  // STEP 3: Update prospect status
+  console.log('approveProspectUser: Updating prospect status');
   const { error: updateError } = await supabase
     .from('prospect_users')
     .update({
@@ -141,11 +167,14 @@ export async function approveProspectUser(prospectId: string, approverId: string
       updated_at: new Date().toISOString(),
     })
     .eq('id', prospectId);
-    
+
   if (updateError) {
-    console.error('Failed to update prospect status:', updateError);
+    console.error('approveProspectUser: Failed to update prospect status:', updateError);
+  } else {
+    console.log('approveProspectUser: Prospect status updated successfully');
   }
-  
+
+  console.log('approveProspectUser: Approval process completed successfully');
   return authUser.user;
 }
 
@@ -154,7 +183,7 @@ export async function approveProspectUser(prospectId: string, approverId: string
  */
 export async function rejectProspectUser(prospectId: string, approverId: string, reason?: string) {
   const supabase = await createServerSupabaseAdmin();
-  
+
   const { error } = await supabase
     .from('prospect_users')
     .update({
@@ -166,11 +195,11 @@ export async function rejectProspectUser(prospectId: string, approverId: string,
     })
     .eq('id', prospectId)
     .eq('status', 'pending'); // Only reject pending applications
-    
+
   if (error) {
     throw new Error(`Failed to reject prospect: ${error.message}`);
   }
-  
+
   return true;
 }
 
@@ -184,7 +213,7 @@ export async function createInitialAdmin(
   lastName: string
 ) {
   const supabase = await createServerSupabaseAdmin();
-  
+
   // Create Supabase auth user
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
     email,
@@ -195,17 +224,17 @@ export async function createInitialAdmin(
       last_name: lastName,
     }
   });
-  
+
   if (authError || !authUser.user) {
     throw new Error(`Failed to create admin auth user: ${authError?.message}`);
   }
-  
+
   // Create admin user profile
   const { error: userError } = await supabase
     .from('users')
     .insert({
       id: authUser.user.id,
-      username: `${firstName.toLowerCase()}.${lastName.toLowerCase()}`,
+      username: `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${Math.floor(Math.random() * 1000)}`,
       email,
       first_name: firstName,
       last_name: lastName,
@@ -214,13 +243,13 @@ export async function createInitialAdmin(
       is_verified: true,
       approved_at: new Date().toISOString(),
     });
-    
+
   if (userError) {
     // Clean up auth user on failure
     await supabase.auth.admin.deleteUser(authUser.user.id);
     throw new Error(`Failed to create admin user profile: ${userError.message}`);
   }
-  
+
   return authUser.user;
 }
 
@@ -229,7 +258,7 @@ export async function createInitialAdmin(
  */
 export async function getAllUsers() {
   const supabase = await createServerSupabaseAdmin();
-  
+
   const { data, error } = await supabase
     .from('users')
     .select(`
@@ -242,7 +271,7 @@ export async function getAllUsers() {
       )
     `)
     .order('created_at', { ascending: false });
-    
+
   if (error) throw error;
   return data;
 }

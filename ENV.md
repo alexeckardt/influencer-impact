@@ -4,7 +4,7 @@ Each File which should have a `.env.local` file will have a corresponding `.env.
 
 ⚠️ **IMPORTANT**: 
 - `NEXT_PUBLIC_*` vars are exposed to frontend (use anon key)
-- `SUPABASE_SERVICE_ROLE_KEY` is backend-only (never expose to frontend)
+- `SUPABASE_SB_SECRET` is backend-only (never expose to frontend)
 
 ---
 
@@ -33,7 +33,7 @@ NEXT_PUBLIC_MEILISEARCH_KEY=dev-key-12345
 ```env
 # Supabase Configuration (Private - backend only)
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SB_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 
@@ -47,7 +47,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 3. Copy:
    - **Project URL** → `SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_URL`
    - **Anon Key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **Service Role Key** → `SUPABASE_SERVICE_ROLE_KEY`
+   - **Service Role Key** → `SUPABASE_SB_SECRET`
 
 ### Environment File Locations
 
@@ -61,7 +61,7 @@ repo/
 ## Security Rules
 - ✅ `NEXT_PUBLIC_*` can be in frontend code
 - ❌ Never commit `.env.local` files
-- ❌ Never expose `SUPABASE_SERVICE_ROLE_KEY` to frontend
+- ❌ Never expose `SUPABASE_SB_SECRET` to frontend
 - ✅ Use `.env.local` for local development
 - ✅ Use CI/CD platform secrets for production
 

@@ -53,7 +53,7 @@ cp apps/web/.env.example apps/web/.env.local
 Fill in:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` 
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SB_SECRET`
 
 ### 3. Create First Admin
 
@@ -159,7 +159,7 @@ The middleware (`middleware.ts`) handles:
 
 **Admin can't access dashboard**:
 - Verify user role is 'admin' in `users` table
-- Check `SUPABASE_SERVICE_ROLE_KEY` is set correctly
+- Check `SUPABASE_SB_SECRET` is set correctly
 
 **Registration not working**:
 - Check database connection

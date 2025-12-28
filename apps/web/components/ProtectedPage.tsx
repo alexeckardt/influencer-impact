@@ -20,33 +20,21 @@ export function ProtectedPage({
   const router = useRouter();
 
   useEffect(() => {
+    // Only run checks when loading is complete AND we have stable auth state
     if (!isLoading) {
+      console.log('ProtectedPage: Auth loading complete', { isLoggedIn, user: !!user, role: user?.role });
+      
+      // Don't redirect if we have a user - let the render logic handle authorization
       if (!isLoggedIn || !user) {
+        console.log('ProtectedPage: Not logged in, redirecting to', fallbackPath);
         router.push(fallbackPath);
-        return;
-      }
-
-      // Check role requirements
-      if (requireRole === 'admin' && user.role !== 'admin') {
-        router.push('/');
-        return;
-      }
-
-      if (requireRole === 'moderator' && !['admin', 'moderator'].includes(user.role)) {
-        router.push('/');
-        return;
-      }
-
-      // Check if user is active
-      if (!user.is_active) {
-        router.push('/login?error=account_inactive');
-        return;
       }
     }
-  }, [isLoading, isLoggedIn, user, requireRole, fallbackPath, router]);
+  }, [isLoading, isLoggedIn, user, fallbackPath, router]);
 
   // Show loading state while checking auth
   if (isLoading) {
+    console.log('ProtectedPage: Still loading auth state');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -57,9 +45,29 @@ export function ProtectedPage({
     );
   }
 
-  // Don't render children if not authenticated or authorized
-  if (!isLoggedIn || !user || !user.is_active) {
-    return null;
+  // If no user, don't render anything (redirect should happen in useEffect)
+  if (!user) {
+    console.log('ProtectedPage: No user, showing loading while redirect processes');
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is inactive
+  if (!user.is_active) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Inactive</h1>
+          <p className="text-gray-600">Your account is not active. Please contact support.</p>
+        </div>
+      </div>
+    );
   }
 
   // Check role authorization
@@ -69,6 +77,7 @@ export function ProtectedPage({
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
           <p className="text-gray-600">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mt-2">Required role: admin, Your role: {user.role}</p>
         </div>
       </div>
     );
@@ -80,10 +89,13 @@ export function ProtectedPage({
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
           <p className="text-gray-600">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mt-2">Required role: moderator/admin, Your role: {user.role}</p>
         </div>
       </div>
     );
   }
 
+  // All checks passed, render the protected content
+  console.log('ProtectedPage: All checks passed, rendering children');
   return <>{children}</>;
 }

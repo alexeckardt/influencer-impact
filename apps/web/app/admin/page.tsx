@@ -12,6 +12,18 @@ export default function AdminDashboard() {
   const [prospects, setProspects] = useState<ProspectUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  
+  // Modal states
+  const [approveModal, setApproveModal] = useState<{ isOpen: boolean; prospect: ProspectUser | null }>({
+    isOpen: false,
+    prospect: null
+  });
+  const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; prospect: ProspectUser | null }>({
+    isOpen: false,
+    prospect: null
+  });
+  const [rejectionReason, setRejectionReason] = useState('');
+  
   const supabase = createClient();
 
   useEffect(() => {
@@ -50,6 +62,7 @@ export default function AdminDashboard() {
       }
 
       await fetchProspects();
+      setApproveModal({ isOpen: false, prospect: null });
     } catch (error) {
       console.error('Error approving prospect:', error);
       alert('Failed to approve prospect. Please try again.');
@@ -58,9 +71,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const rejectProspect = async (prospectId: string) => {
-    const reason = prompt('Reason for rejection (optional):');
-    
+  const rejectProspect = async (prospectId: string, reason: string) => {
     setActionLoading(prospectId);
     try {
       const response = await fetch('/api/admin/reject-prospect', {
@@ -76,11 +87,34 @@ export default function AdminDashboard() {
       }
 
       await fetchProspects();
+      setRejectModal({ isOpen: false, prospect: null });
+      setRejectionReason('');
     } catch (error) {
       console.error('Error rejecting prospect:', error);
       alert('Failed to reject prospect. Please try again.');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const openApproveModal = (prospect: ProspectUser) => {
+    setApproveModal({ isOpen: true, prospect });
+  };
+
+  const openRejectModal = (prospect: ProspectUser) => {
+    setRejectModal({ isOpen: true, prospect });
+    setRejectionReason('');
+  };
+
+  const handleApprove = () => {
+    if (approveModal.prospect) {
+      approveProspect(approveModal.prospect.id);
+    }
+  };
+
+  const handleReject = () => {
+    if (rejectModal.prospect) {
+      rejectProspect(rejectModal.prospect.id, rejectionReason);
     }
   };
 
@@ -197,15 +231,15 @@ export default function AdminDashboard() {
                             {prospect.status === 'pending' && (
                               <>
                                 <button
-                                  onClick={() => approveProspect(prospect.id)}
+                                  onClick={() => openApproveModal(prospect)}
                                   disabled={actionLoading === prospect.id}
                                   className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
                                 >
                                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                                  {actionLoading === prospect.id ? 'Approving...' : 'Approve'}
+                                  {actionLoading === prospect.id ? 'Processing...' : 'Approve'}
                                 </button>
                                 <button
-                                  onClick={() => rejectProspect(prospect.id)}
+                                  onClick={() => openRejectModal(prospect)}
                                   disabled={actionLoading === prospect.id}
                                   className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
                                 >
@@ -230,6 +264,79 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Approve Modal */}
+      {approveModal.isOpen && approveModal.prospect && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Approval</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to approve <strong>{approveModal.prospect.first_name} {approveModal.prospect.last_name}</strong>?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setApproveModal({ isOpen: false, prospect: null })}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={actionLoading === approveModal.prospect.id}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApprove}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                disabled={actionLoading === approveModal.prospect.id}
+              >
+                {actionLoading === approveModal.prospect.id ? 'Approving...' : 'Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModal.isOpen && rejectModal.prospect && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Application</h3>
+            <p className="text-gray-600 mb-4">
+              You are about to reject <strong>{rejectModal.prospect.first_name} {rejectModal.prospect.last_name}</strong>&apos;s application.
+            </p>
+            <div className="mb-6">
+              <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for rejection (optional):
+              </label>
+              <textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                rows={3}
+                placeholder="Enter reason for rejection..."
+                disabled={actionLoading === rejectModal.prospect.id}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setRejectModal({ isOpen: false, prospect: null });
+                  setRejectionReason('');
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={actionLoading === rejectModal.prospect.id}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                disabled={actionLoading === rejectModal.prospect.id}
+              >
+                {actionLoading === rejectModal.prospect.id ? 'Rejecting...' : 'Reject Application'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedPage>
   );
 }

@@ -7,7 +7,7 @@
  * 
  * Make sure to set these environment variables first:
  * - NEXT_PUBLIC_SUPABASE_URL
- * - SUPABASE_SERVICE_ROLE_KEY
+ * - SUPABASE_SB_SECRET
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -25,10 +25,10 @@ if (!email || !password || !firstName || !lastName) {
 }
 
 // Check environment variables
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SB_SECRET) {
   console.error('Missing required environment variables:');
   console.error('- NEXT_PUBLIC_SUPABASE_URL');
-  console.error('- SUPABASE_SERVICE_ROLE_KEY');
+  console.error('- SUPABASE_SB_SECRET');
   console.error('\nMake sure to set these in apps/web/.env.local');
   process.exit(1);
 }
@@ -36,7 +36,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
 async function createInitialAdmin(email, password, firstName, lastName) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_SB_SECRET
   );
   
   // Create Supabase auth user
