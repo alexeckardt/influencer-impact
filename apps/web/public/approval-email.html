@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Approval Email</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        background-color: #f9f9f9;
+        color: #333;
+        padding: 20px;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h2 {
+        color: #007bff;
+      }
+      .content p {
+        margin: 10px 0;
+      }
+      .footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 0.9em;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Welcome to the Platform, {{firstName}}!</h2>
+      </div>
+      <div class="content">
+        <p>Congratulations! Your application has been approved. You can now log in to your account using the credentials below:</p>
+        <p><strong>Email:</strong> {{email}}</p>
+        <p><strong>Temporary Password:</strong> {{tempPassword}}</p>
+        <p>We recommend changing your password as soon as you log in.</p>
+        <p>Click <a href="{{appUrl}}/login">here</a> to log in.</p>
+      </div>
+      <div class="footer">
+        <p>Thank you,<br />The Team</p>
+      </div>
+    </div>
+  </body>
+</html>

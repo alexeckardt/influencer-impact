@@ -13,26 +13,65 @@ import {
 import { sql } from 'drizzle-orm';
 
 // ============================================================================
+// Prospect Users Table (signup applications)
+// ============================================================================
+export const prospectUsers = pgTable(
+  'prospect_users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    firstName: varchar('first_name', { length: 255 }).notNull(),
+    lastName: varchar('last_name', { length: 255 }).notNull(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    password: varchar('password', { length: 255 }).notNull(), // This will be hashed
+    company: varchar('company', { length: 255 }),
+    jobTitle: varchar('job_title', { length: 255 }),
+    yearsExperience: varchar('years_experience', { length: 50 }),
+    linkedinUrl: varchar('linkedin_url', { length: 500 }),
+    status: varchar('status', {
+      enum: ['pending', 'approved', 'rejected'],
+    }).default('pending').notNull(),
+    rejectionReason: text('rejection_reason'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedBy: uuid('reviewed_by'), // Admin who approved/rejected
+  },
+  (table) => ({
+    emailIdx: uniqueIndex('prospect_users_email_idx').on(table.email),
+  })
+);
+
+// ============================================================================
 // Users Table (auth-managed, linked to Supabase Auth)
 // ============================================================================
 export const users = pgTable(
   'users',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey(), // This will be set to match Supabase auth.users.id
+    prospectUserId: uuid('prospect_user_id').references(() => prospectUsers.id),
     username: varchar('username', { length: 255 }).notNull().unique(),
     email: varchar('email', { length: 255 }).notNull().unique(),
+    firstName: varchar('first_name', { length: 255 }).notNull(),
+    lastName: varchar('last_name', { length: 255 }).notNull(),
     fullName: varchar('full_name', { length: 255 }),
     avatarUrl: text('avatar_url'),
     bio: text('bio'),
+    company: varchar('company', { length: 255 }),
+    jobTitle: varchar('job_title', { length: 255 }),
+    yearsExperience: varchar('years_experience', { length: 50 }),
+    linkedinUrl: varchar('linkedin_url', { length: 500 }),
     role: varchar('role', {
       enum: ['user', 'moderator', 'admin'],
     })
       .default('user')
       .notNull(),
     isVerified: boolean('is_verified').default(false),
+    isActive: boolean('is_active').default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    approvedBy: uuid('approved_by'), // Admin who approved the user
   },
   (table) => ({
     usernameIdx: uniqueIndex('users_username_idx').on(table.username),

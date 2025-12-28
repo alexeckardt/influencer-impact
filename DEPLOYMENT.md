@@ -119,7 +119,7 @@ curl https://your-domain.vercel.app
      --region us-central1 \
      --set-env-vars \
        SUPABASE_URL=https://your-project.supabase.co,\
-       SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
+       SUPABASE_SB_SECRET=your-service-role-key \
      --no-allow-unauthenticated \
      --memory 512Mi
    ```
@@ -222,7 +222,7 @@ Via `gcloud run deploy` or Cloud Console:
 
 ```
 SUPABASE_URL: https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY: your-service-role-key-here
+SUPABASE_SB_SECRET: your-service-role-key-here
 ```
 
 ### GitHub Actions Secrets

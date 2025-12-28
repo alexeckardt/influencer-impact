@@ -15,10 +15,16 @@ Open [http://localhost:3000](http://localhost:3000) to view it.
 
 Create `.env.local`:
 
+## Installation of new packages
+
+When adding new packages, run the following command from the monorepo root:
+
+```bash
+cd apps/web
+pnpm add <package name>
 ```
-NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
-```
+
+Then, restart the development server.
 
 ## Features
 

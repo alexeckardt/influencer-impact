@@ -16,10 +16,10 @@ Create `.env.local`:
 
 ```
 SUPABASE_URL=<your-supabase-url>
-SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+SUPABASE_SB_SECRET=<your-service-role-key>
 ```
 
-**⚠️ Security**: `SUPABASE_SERVICE_ROLE_KEY` must never be exposed to frontend. Use only in backend/worker.
+**⚠️ Security**: `SUPABASE_SB_SECRET` must never be exposed to frontend. Use only in backend/worker.
 
 ## Features
 

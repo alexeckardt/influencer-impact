@@ -192,7 +192,7 @@ packages/db (Database)
 │ PRIVATE (Backend Only)                                   │
 │                                                          │
 │  SUPABASE_URL                ❌ NEVER in frontend       │
-│  SUPABASE_SERVICE_ROLE_KEY   ❌ NEVER in frontend       │
+│  SUPABASE_SB_SECRET   ❌ NEVER in frontend       │
 │  (Only in Cloud Run / Lambda)                           │
 │                                                          │
 │  Can read/write all data                                │
