@@ -109,7 +109,8 @@ export async function approveProspectUser(prospectId: string, approverId: string
     user_metadata: {
       first_name: prospect.first_name,
       last_name: prospect.last_name,
-    }
+      has_temp_password: true,
+    },
   });
 
   if (authError) {

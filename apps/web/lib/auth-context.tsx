@@ -56,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('AuthProvider: Checking initial auth state');
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
         
+        console.log('AuthProvider: Initial supabase user:', supabaseUser);
+
         if (supabaseUser) {
           console.log('AuthProvider: Loading user profile for', supabaseUser.id);
           await loadUserProfile(supabaseUser);
