@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { initSupabaseAdmin } from '@influencer-platform/db';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Background job worker for processing reviews and updating statistics
@@ -18,7 +18,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   throw new Error('Missing required environment variables: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
 }
 
-const supabase = initSupabaseAdmin(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 /**
  * Process new reviews

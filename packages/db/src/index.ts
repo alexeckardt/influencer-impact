@@ -1,92 +1,234 @@
-/**
- * Database helpers for common operations
- * These utilities abstract Supabase queries for type safety
- */
+// Database exports
+export * from './schema';
 
-import { createClient } from '@supabase/supabase-js';
-import type { Influencer, Review, ReviewLabel } from '@influencer-platform/shared';
-
-/**
- * Initialize Supabase client with service role key (for backend use only)
- */
-export function initSupabaseAdmin(url: string, serviceRoleKey: string) {
-  return createClient(url, serviceRoleKey);
-}
-
-/**
- * Fetch influencer by ID with their handles and stats
- */
-export async function getInfluencerWithStats(
-  supabase: ReturnType<typeof initSupabaseAdmin>,
-  influencerId: string
-) {
-  const { data, error } = await supabase
-    .from('influencers')
-    .select(`
-      *,
-      influencer_handles (
-        id,
-        platform,
-        username,
-        url,
-        follower_count
-      ),
-      influencer_stats (*)
-    `)
-    .eq('id', influencerId)
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Fetch published reviews for an influencer
- */
-export async function getReviewsForInfluencer(
-  supabase: ReturnType<typeof initSupabaseAdmin>,
-  influencerId: string,
-  limit = 50
-) {
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('*, review_labels (*)')
-    .eq('influencer_id', influencerId)
-    .eq('status', 'published')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Update influencer stats (background job use)
- */
-export async function updateInfluencerStats(
-  supabase: ReturnType<typeof initSupabaseAdmin>,
-  influencerId: string,
-  stats: {
-    total_reviews: number;
-    average_rating: number | null;
-    sentiment_positive: number;
-    sentiment_neutral: number;
-    sentiment_negative: number;
-    engagement_score: number;
-  }
-) {
-  const { error } = await supabase
-    .from('influencer_stats')
-    .upsert(
-      {
-        influencer_id: influencerId,
-        ...stats,
-        last_updated: new Date().toISOString(),
-      },
-      { onConflict: 'influencer_id' }
-    );
-
-  if (error) throw error;
-}
-
-export { createClient } from '@supabase/supabase-js';
+// Supabase Database type definition
+// This is a simplified type that matches what Supabase expects
+export type Database = {
+  public: {
+    Tables: {
+      prospect_users: {
+        Row: {
+          id: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          password: string;
+          company: string | null;
+          job_title: string | null;
+          years_experience: string | null;
+          linkedin_url: string | null;
+          status: 'pending' | 'approved' | 'rejected';
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          password: string;
+          company?: string | null;
+          job_title?: string | null;
+          years_experience?: string | null;
+          linkedin_url?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          rejection_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          first_name?: string;
+          last_name?: string;
+          email?: string;
+          password?: string;
+          company?: string | null;
+          job_title?: string | null;
+          years_experience?: string | null;
+          linkedin_url?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          rejection_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+      };
+      users: {
+        Row: {
+          id: string;
+          prospect_user_id: string | null;
+          username: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+          full_name: string | null;
+          avatar_url: string | null;
+          bio: string | null;
+          company: string | null;
+          job_title: string | null;
+          years_experience: string | null;
+          linkedin_url: string | null;
+          role: 'user' | 'moderator' | 'admin';
+          is_verified: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+        };
+        Insert: {
+          id: string;
+          prospect_user_id?: string | null;
+          username: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          bio?: string | null;
+          company?: string | null;
+          job_title?: string | null;
+          years_experience?: string | null;
+          linkedin_url?: string | null;
+          role?: 'user' | 'moderator' | 'admin';
+          is_verified?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          prospect_user_id?: string | null;
+          username?: string;
+          email?: string;
+          first_name?: string;
+          last_name?: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          bio?: string | null;
+          company?: string | null;
+          job_title?: string | null;
+          years_experience?: string | null;
+          linkedin_url?: string | null;
+          role?: 'user' | 'moderator' | 'admin';
+          is_verified?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+        };
+      };
+      influencers: {
+        Row: {
+          id: string;
+          name: string;
+          bio: string | null;
+          primary_niche: string;
+          verified: boolean;
+          profile_image_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          bio?: string | null;
+          primary_niche: string;
+          verified?: boolean;
+          profile_image_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          bio?: string | null;
+          primary_niche?: string;
+          verified?: boolean;
+          profile_image_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      influencer_handles: {
+        Row: {
+          id: string;
+          influencer_id: string;
+          platform: 'twitter' | 'instagram' | 'tiktok' | 'youtube';
+          username: string;
+          url: string;
+          follower_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          influencer_id: string;
+          platform: 'twitter' | 'instagram' | 'tiktok' | 'youtube';
+          username: string;
+          url: string;
+          follower_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          influencer_id?: string;
+          platform?: 'twitter' | 'instagram' | 'tiktok' | 'youtube';
+          username?: string;
+          url?: string;
+          follower_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      reviews: {
+        Row: {
+          id: string;
+          influencer_id: string;
+          user_id: string;
+          title: string;
+          content: string;
+          rating: number;
+          sentiment: 'positive' | 'neutral' | 'negative' | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          influencer_id: string;
+          user_id: string;
+          title: string;
+          content: string;
+          rating: number;
+          sentiment?: 'positive' | 'neutral' | 'negative' | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          influencer_id?: string;
+          user_id?: string;
+          title?: string;
+          content?: string;
+          rating?: number;
+          sentiment?: 'positive' | 'neutral' | 'negative' | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+  };
+};

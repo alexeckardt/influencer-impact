@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
-import { Star, ArrowLeft } from 'lucide-react';
+import { Star, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
@@ -10,9 +10,10 @@ interface LoginProps {
 }
 
 export function Login({children, ...props}: LoginProps) {
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const router = useRouter();
   const { signIn } = useAuth();
@@ -21,14 +22,26 @@ export function Login({children, ...props}: LoginProps) {
    * Handle form submission
    * @param e Form event
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-    //Use the auth context to sign in the user
-    signIn({ id: '1', email, name: 'Demo User' });
-
-    // Mock login - in real app would validate credentials
-    router.push('/');
+    try {
+      await signIn(email, password);
+      router.push('/');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.message.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setError('Please check your email and confirm your account before signing in.');
+      } else {
+        setError('Failed to sign in. Please try again or contact support if the problem persists.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -37,7 +50,6 @@ export function Login({children, ...props}: LoginProps) {
   const handleToRegisterClick = () => {
     router.push('./register');
   }
-
 
   return (
     <div className="min-h-screen">
@@ -58,6 +70,15 @@ export function Login({children, ...props}: LoginProps) {
               Sign in to access influencer reviews
             </p>
 
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-red-800 text-sm">{error}</p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm mb-2">
@@ -69,7 +90,8 @@ export function Login({children, ...props}: LoginProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                   placeholder="you@company.com"
                 />
               </div>
@@ -84,7 +106,8 @@ export function Login({children, ...props}: LoginProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={loading}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                   placeholder="••••••••"
                 />
               </div>
@@ -97,27 +120,41 @@ export function Login({children, ...props}: LoginProps) {
                   />
                   <span className="ml-2 text-sm text-gray-600">Remember me</span>
                 </label>
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-700">
+                <button
+                  type="button"
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                  onClick={() => {/* TODO: Implement forgot password */}}
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sign In
+                {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
 
-            <div className="mt-6 text-center">
-              <span className="text-gray-600">Don't have an account? </span>
-              <button
-                onClick={handleToRegisterClick}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                Register here
-              </button>
+            <div className="mt-8 text-center">
+              <p className="text-gray-600">
+                Don't have an account?{' '}
+                <button 
+                  onClick={handleToRegisterClick}
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Apply for access
+                </button>
+              </p>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-xs text-gray-500 text-center">
+                Access is restricted to verified PR professionals. 
+                Applications are reviewed manually.
+              </p>
             </div>
           </div>
         </div>
