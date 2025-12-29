@@ -21,6 +21,8 @@ type UserProfile = {
   role: 'user' | 'moderator' | 'admin';
   is_verified: boolean;
   is_active: boolean;
+  public_profile: boolean;
+  
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
