@@ -214,10 +214,7 @@ const formatFollowerCount = (count: number): string => {
 };
 
 export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
-  const [influencer, setInfluencer] = useState<Influencer | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const router = useRouter();
 
   // Use tRPC query for influencer data
@@ -225,8 +222,6 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
     { id: influencerId! },
     { enabled: !!influencerId }
   );
-
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (queryError) {
@@ -296,7 +291,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-shrink-0">
               <ImageWithFallback
-                src={influencer.profileImageUrl}
+                src={influencer.profileImageUrl || undefined}
                 alt={influencer.name}
                 className="w-32 h-32 rounded-full object-cover"
               />
@@ -318,7 +313,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
                   {influencer.niche}
                 </span>
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                  {influencer.location}
+                  {influencer.location || 'Location Unknown'}
                 </span>
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
                   {influencer.engagementRate.toFixed(1)}% engagement

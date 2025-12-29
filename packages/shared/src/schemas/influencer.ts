@@ -57,6 +57,7 @@ export const InfluencerDetailResponseSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   bio: z.string().nullable(),
+  location: z.string().nullable(),
   niche: z.string(),
   profileImageUrl: z.string().nullable(),
   verified: z.boolean(),
