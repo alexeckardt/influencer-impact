@@ -130,7 +130,9 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const reviewId = params.id;
+  // Get
+  const { id: reviewId } = await params;
+  console.log(`Updating review with ID: ${reviewId}`);
 
   try {
     // First, verify that the user owns this review
