@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ProtectedPage } from '@/components/ProtectedPage';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@influencer-platform/db';
-import { CheckCircle2, XCircle, User, Building, Calendar, ExternalLink } from 'lucide-react';
+import { CheckCircle2, XCircle, User, Building, Calendar, ExternalLink, ArrowLeft } from 'lucide-react';
 
 type ProspectUser = Database['public']['Tables']['prospect_users']['Row'];
 
@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const [prospects, setProspects] = useState<ProspectUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
+
   // Modal states
   const [approveModal, setApproveModal] = useState<{ isOpen: boolean; prospect: ProspectUser | null }>({
     isOpen: false,
@@ -29,7 +29,7 @@ export default function AdminDashboard() {
     details: ''
   });
   const [rejectionReason, setRejectionReason] = useState('');
-  
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
         .from('prospect_users')
         .select('*')
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
       setProspects(data || []);
     } catch (error) {
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
         const errorData = await response.text();
         let errorMessage = 'Failed to approve prospect';
         let errorDetails = '';
-        
+
         try {
           const parsedError = JSON.parse(errorData);
           errorMessage = parsedError.error || errorMessage;
@@ -115,7 +115,7 @@ export default function AdminDashboard() {
         const errorData = await response.text();
         let errorMessage = 'Failed to reject prospect';
         let errorDetails = '';
-        
+
         try {
           const parsedError = JSON.parse(errorData);
           errorMessage = parsedError.error || errorMessage;
@@ -170,6 +170,11 @@ export default function AdminDashboard() {
     }
   };
 
+  const onBack = () => {
+    window.location.href = '/';
+  }
+
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -183,6 +188,15 @@ export default function AdminDashboard() {
     <ProtectedPage requireRole="admin">
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Search
+          </button>
+
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">Manage user applications and system settings</p>
@@ -406,7 +420,7 @@ export default function AdminDashboard() {
                 <XCircle className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Error Message:</h4>
@@ -414,7 +428,7 @@ export default function AdminDashboard() {
                   {errorModal.message}
                 </p>
               </div>
-              
+
               {errorModal.details && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Technical Details:</h4>
@@ -424,7 +438,7 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex justify-end mt-6">
               <button
                 onClick={() => setErrorModal({ isOpen: false, title: '', message: '', details: '' })}

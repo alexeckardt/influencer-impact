@@ -206,7 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+
+
     setIsLoading(true);
+
     try {
       // First, clear local state immediately
       setUser(null);
@@ -219,6 +222,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Supabase sign out error:', error);
         // Even if Supabase sign out fails, we want to clear local state
       }
+
+      // Switch Page
+      window.location.href = '/login';
       
       // Force clear any remaining session data
       if (typeof window !== 'undefined') {

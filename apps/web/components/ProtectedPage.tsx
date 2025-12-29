@@ -11,10 +11,10 @@ interface ProtectedPageProps {
   fallbackPath?: string;
 }
 
-export function ProtectedPage({ 
-  children, 
+export function ProtectedPage({
+  children,
   requireRole = 'user',
-  fallbackPath = '/login' 
+  fallbackPath = '/login'
 }: ProtectedPageProps) {
   const { user, isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
@@ -23,7 +23,7 @@ export function ProtectedPage({
     // Only run checks when loading is complete AND we have stable auth state
     if (!isLoading) {
       console.log('ProtectedPage: Auth loading complete', { isLoggedIn, user: !!user, role: user?.role });
-      
+
       // Don't redirect if we have a user - let the render logic handle authorization
       if (!isLoggedIn || !user) {
         console.log('ProtectedPage: Not logged in, redirecting to', fallbackPath);
@@ -97,5 +97,7 @@ export function ProtectedPage({
 
   // All checks passed, render the protected content
   console.log('ProtectedPage: All checks passed, rendering children');
-  return <>{children}</>;
+  return <div className="bg-gray-50 min-h-screen">
+    {children}
+  </div>;
 }
