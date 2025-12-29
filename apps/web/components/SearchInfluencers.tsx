@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Star, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
+import { trpc } from '@/lib/trpc/client';
 
 interface SearchInfluencersProps {
 }
@@ -181,68 +182,40 @@ export function SearchInfluencers({}: SearchInfluencersProps) {
   const [minRating, setMinRating] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  
-  const [influencers, setInfluencers] = useState<Influencer[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo>({
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const router = useRouter();
+
+  // Use tRPC query for influencer search
+  const { data, isLoading, error, refetch } = trpc.influencers.search.useQuery({
+    page: currentPage,
+    search: searchQuery || undefined,
+    niche: selectedNiche && selectedNiche !== 'All Niches' ? selectedNiche : undefined,
+    minRating: minRating > 0 ? minRating : undefined,
+    verified: verifiedOnly || undefined,
+  });
+
+  const influencers = data?.influencers || [];
+  const pagination = data?.pagination || {
     page: 1,
     perPage: 12,
     total: 0,
     totalPages: 0,
     hasMore: false,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const router = useRouter();
-
-  // Fetch influencers from API
-  const fetchInfluencers = async (page: number = 1) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        search: searchQuery,
-        minRating: minRating.toString(),
-      });
-
-      if (selectedNiche && selectedNiche !== 'All Niches') {
-        params.append('niche', selectedNiche);
-      }
-
-      if (verifiedOnly) {
-        params.append('verified', 'true');
-      }
-
-      const response = await fetch(`/api/influencers/search?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch influencers');
-      }
-
-      const data = await response.json();
-      setInfluencers(data.influencers);
-      setPagination(data.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setInfluencers([]);
-    } finally {
-      setLoading(false);
-    }
   };
 
-  // Fetch on mount and when filters change
+  // Refetch when filters change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchInfluencers(1);
+      setCurrentPage(1);
+      refetch();
     }, 300); // Debounce search
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, selectedNiche, minRating, verifiedOnly]);
+  }, [searchQuery, selectedNiche, minRating, verifiedOnly, refetch]);
 
   const handlePageChange = (newPage: number) => {
-    fetchInfluencers(newPage);
+    setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -325,16 +298,16 @@ export function SearchInfluencers({}: SearchInfluencersProps) {
         </div>
 
         {/* Results */}
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             <p className="text-gray-600 mt-4">Loading influencers...</p>
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-red-600 mb-4">{error}</p>
+            <p className="text-red-600 mb-4">{error.message || 'An error occurred'}</p>
             <button
-              onClick={() => fetchInfluencers(pagination.page)}
+              onClick={() => refetch()}
               className="text-blue-600 hover:text-blue-700"
             >
               Try again

@@ -1,118 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Star, Edit2, ExternalLink, Flag } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReportReviewModal } from '@/components/ReportReviewModal';
-
-interface Influencer {
-  id: string;
-  name: string;
-  profileImageUrl: string;
-  niche: string;
-  verified: boolean;
-}
-
-interface Reviewer {
-  firstName: string;
-  lastName: string;
-  companyName: string;
-  jobTitle: string;
-  yearsInPR: string;
-}
-
-interface Review {
-  id: string;
-  overallRating: number;
-  professionalism: number;
-  communication: number;
-  contentQuality: number;
-  roi: number;
-  reliability: number;
-  pros: string;
-  cons: string;
-  advice: string;
-  wouldWorkAgain: boolean;
-  createdAt: string;
-  updatedAt: string;
-  isAuthor: boolean;
-  influencer: Influencer | null;
-  reviewer: Reviewer | null;
-}
+import { trpc } from '@/lib/trpc/client';
 
 export function ReviewDetail() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
 
-  const [review, setReview] = useState<Review | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [hasReported, setHasReported] = useState(false);
-  const [checkingReportStatus, setCheckingReportStatus] = useState(true);
+
+  // Fetch review using tRPC
+  const { data: review, isLoading: loading, error: queryError, refetch } = trpc.reviews.getById.useQuery(
+    { reviewId: id },
+    { enabled: !!id }
+  );
+
+  // Check report status using tRPC
+  const { data: reportStatus, isLoading: checkingReportStatus } = trpc.reviewReports.checkReportStatus.useQuery(
+    { reviewId: id },
+    { enabled: !!id }
+  );
+
+  const hasReported = reportStatus?.hasReported || false;
+  const error = queryError?.message || null;
 
   console.log("Review Object:", review);
 
-  useEffect(() => {
-    const fetchReview = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/reviews/${id}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Review not found');
-          } else if (response.status === 401) {
-            setError('Please log in to view this review');
-          } else {
-            setError('Failed to load review');
-          }
-          return;
-        }
-
-        const data = await response.json();
-        setReview(data);
-      } catch (err) {
-        console.error('Error fetching review:', err);
-        setError('An error occurred while loading the review');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReview();
-  }, [id]);
-
-  useEffect(() => {
-    const checkReportStatus = async () => {
-      try {
-        setCheckingReportStatus(true);
-        const response = await fetch(`/api/reviews/${id}/report`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setHasReported(data.hasReported);
-        }
-      } catch (err) {
-        console.error('Error checking report status:', err);
-      } finally {
-        setCheckingReportStatus(false);
-      }
-    };
-
-    checkReportStatus();
-  }, [id]);
-
   const handleEditSuccess = async () => {
-    // Refresh the review data
-    const updatedData = await fetch(`/api/reviews/${id}`).then(r => r.json());
-    setReview(updatedData);
+    // Refresh the review data using tRPC refetch
+    await refetch();
     setIsEditing(false);
   };
 
@@ -338,7 +261,8 @@ export function ReviewDetail() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         onSuccess={() => {
-          setHasReported(true);
+          // Refetch report status after successful submission
+          refetch();
           // Optional: show success message
           alert('Report submitted successfully. Thank you for helping us maintain quality!');
         }}

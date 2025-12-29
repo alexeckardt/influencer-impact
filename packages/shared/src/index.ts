@@ -8,6 +8,7 @@ export * from './schemas/review';
 export * from './schemas/stats';
 export * from './schemas/review-label';
 export * from './schemas/api';
+export * from './schemas/user';
 
 /**
  * Utilities

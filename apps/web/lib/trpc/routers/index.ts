@@ -5,6 +5,8 @@
 import { router } from '../init';
 import { reviewReportsRouter } from './review-reports';
 import { reviewsRouter } from './reviews';
+import { influencersRouter } from './influencers';
+import { adminRouter } from './admin';
 
 /**
  * This is the primary router for your server.
@@ -13,6 +15,8 @@ import { reviewsRouter } from './reviews';
 export const appRouter = router({
   reviewReports: reviewReportsRouter,
   reviews: reviewsRouter,
+  influencers: influencersRouter,
+  admin: adminRouter,
 });
 
 // Export type definition of API

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Database } from '@influencer-platform/db';
 import { CheckCircle2, XCircle, User, Building, Calendar, ExternalLink } from 'lucide-react';
+import { trpc } from '@/lib/trpc/client';
 
 type ProspectUser = Database['public']['Tables']['prospect_users']['Row'];
 
@@ -50,98 +51,50 @@ export function ProspectsTable() {
     }
   };
 
+  const approveMutation = trpc.admin.approveProspect.useMutation({
+    onSuccess: async () => {
+      await fetchProspects();
+      setApproveModal({ isOpen: false, prospect: null });
+    },
+    onError: (error) => {
+      setErrorModal({
+        isOpen: true,
+        title: 'Approval Failed',
+        message: error.message || 'Failed to approve prospect',
+        details: error.message
+      });
+    },
+  });
+
   const approveProspect = async (prospectId: string) => {
     setActionLoading(prospectId);
     try {
-      const response = await fetch('/api/admin/approve-prospect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prospectId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        let errorMessage = 'Failed to approve prospect';
-        let errorDetails = '';
-
-        try {
-          const parsedError = JSON.parse(errorData);
-          errorMessage = parsedError.error || errorMessage;
-          errorDetails = parsedError.details || '';
-        } catch {
-          errorDetails = errorData;
-        }
-
-        setErrorModal({
-          isOpen: true,
-          title: 'Approval Failed',
-          message: errorMessage,
-          details: errorDetails
-        });
-        return;
-      }
-
-      await fetchProspects();
-      setApproveModal({ isOpen: false, prospect: null });
-    } catch (error) {
-      console.error('Error approving prospect:', error);
-      setErrorModal({
-        isOpen: true,
-        title: 'Network Error',
-        message: 'Failed to approve prospect. Please check your connection and try again.',
-        details: error instanceof Error ? error.message : String(error)
-      });
+      await approveMutation.mutateAsync({ prospectId });
     } finally {
       setActionLoading(null);
     }
   };
 
-  const rejectProspect = async (prospectId: string, reason: string) => {
-    setActionLoading(prospectId);
-    try {
-      const response = await fetch('/api/admin/reject-prospect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prospectId, reason }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        let errorMessage = 'Failed to reject prospect';
-        let errorDetails = '';
-
-        try {
-          const parsedError = JSON.parse(errorData);
-          errorMessage = parsedError.error || errorMessage;
-          errorDetails = parsedError.details || '';
-        } catch {
-          errorDetails = errorData;
-        }
-
-        setErrorModal({
-          isOpen: true,
-          title: 'Rejection Failed',
-          message: errorMessage,
-          details: errorDetails
-        });
-        return;
-      }
-
+  const rejectMutation = trpc.admin.rejectProspect.useMutation({
+    onSuccess: async () => {
       await fetchProspects();
       setRejectModal({ isOpen: false, prospect: null });
       setRejectionReason('');
-    } catch (error) {
-      console.error('Error rejecting prospect:', error);
+    },
+    onError: (error) => {
       setErrorModal({
         isOpen: true,
-        title: 'Network Error',
-        message: 'Failed to reject prospect. Please check your connection and try again.',
-        details: error instanceof Error ? error.message : String(error)
+        title: 'Rejection Failed',
+        message: error.message || 'Failed to reject prospect',
+        details: error.message
       });
+    },
+  });
+
+  const rejectProspect = async (prospectId: string, reason: string) => {
+    setActionLoading(prospectId);
+    try {
+      await rejectMutation.mutateAsync({ prospectId, reason });
     } finally {
       setActionLoading(null);
     }

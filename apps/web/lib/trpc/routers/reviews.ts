@@ -143,4 +143,69 @@ export const reviewsRouter = router({
         reviewId: review?.id || null,
       };
     }),
+
+  /**
+   * Update an existing review
+   */
+  update: protectedProcedure
+    .input(z.object({
+      reviewId: z.string(),
+      overallRating: z.number(),
+      professionalismRating: z.number(),
+      communicationRating: z.number(),
+      contentQualityRating: z.number(),
+      roiRating: z.number(),
+      reliabilityRating: z.number(),
+      pros: z.string(),
+      cons: z.string(),
+      advice: z.string(),
+      wouldWorkAgain: z.boolean(),
+    }))
+    .output(z.object({ 
+      success: z.boolean(), 
+      message: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify review exists and belongs to user
+      const { data: existingReview } = await ctx.supabase
+        .from('reviews')
+        .select('id, reviewer_id')
+        .eq('id', input.reviewId)
+        .single();
+
+      if (!existingReview) {
+        throw new Error('Review not found');
+      }
+
+      if (existingReview.reviewer_id !== ctx.user.id) {
+        throw new Error('Unauthorized');
+      }
+
+      // Update the review
+      const { error } = await ctx.supabase
+        .from('reviews')
+        .update({
+          overall_rating: input.overallRating,
+          professionalism_rating: input.professionalismRating,
+          communication_rating: input.communicationRating,
+          content_quality_rating: input.contentQualityRating,
+          roi_rating: input.roiRating,
+          reliability_rating: input.reliabilityRating,
+          pros: input.pros,
+          cons: input.cons,
+          advice: input.advice,
+          would_work_again: input.wouldWorkAgain,
+        })
+        .eq('id', input.reviewId);
+
+      if (error) {
+        console.error('Review update error:', error);
+        throw new Error('Failed to update review');
+      }
+
+      return {
+        success: true,
+        message: 'Review updated successfully',
+      };
+    }),
 });

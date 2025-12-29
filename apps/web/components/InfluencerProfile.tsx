@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Star, ArrowLeft, LogOut, Instagram, Youtube, Twitter, TrendingUp, MessageSquare, DollarSign, Clock, ThumbsUp, ExternalLink } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
+import { trpc } from '@/lib/trpc/client';
 
 interface InfluencerProfileProps {
   influencerId: string | null;
@@ -219,42 +220,29 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
 
   const router = useRouter();
 
+  // Use tRPC query for influencer data
+  const { data: influencer, isLoading, error: queryError } = trpc.influencers.getById.useQuery(
+    { id: influencerId! },
+    { enabled: !!influencerId }
+  );
+
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!influencerId) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchInfluencer = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/influencers/${influencerId}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Influencer not found');
-          } else if (response.status === 401) {
-            setError('Please log in to view this profile');
-          } else {
-            setError('Failed to load influencer profile');
-          }
-          return;
-        }
-
-        const data = await response.json();
-        setInfluencer(data);
-      } catch (err) {
-        console.error('Error fetching influencer:', err);
-        setError('An error occurred while loading the profile');
-      } finally {
-        setLoading(false);
+    if (queryError) {
+      if (queryError.message.includes('not found')) {
+        setError('Influencer not found');
+      } else if (queryError.message.includes('Unauthorized')) {
+        setError('Please log in to view this profile');
+      } else {
+        setError('Failed to load influencer profile');
       }
-    };
+    } else {
+      setError(null);
+    }
+  }, [queryError]);
 
-    fetchInfluencer();
-  }, [influencerId]);
+  const loading = isLoading;
 
   const onBack = () => {
     router.back();
