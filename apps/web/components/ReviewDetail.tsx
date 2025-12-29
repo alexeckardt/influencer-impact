@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Star, Edit2, ExternalLink } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { ReviewForm } from '@/components/ReviewForm';
 
 interface Influencer {
   id: string;
@@ -52,20 +53,6 @@ export function ReviewDetail() {
 
   console.log("Review Object:", review);
 
-  // Edit state
-  const [editRatings, setEditRatings] = useState({
-    professionalism: 0,
-    communication: 0,
-    contentQuality: 0,
-    roi: 0,
-    reliability: 0,
-  });
-  const [editPros, setEditPros] = useState('');
-  const [editCons, setEditCons] = useState('');
-  const [editAdvice, setEditAdvice] = useState('');
-  const [editWouldWorkAgain, setEditWouldWorkAgain] = useState<boolean | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
     const fetchReview = async () => {
       try {
@@ -87,19 +74,6 @@ export function ReviewDetail() {
 
         const data = await response.json();
         setReview(data);
-
-        // Initialize edit state with current values
-        setEditRatings({
-          professionalism: data.professionalism,
-          communication: data.communication,
-          contentQuality: data.contentQuality,
-          roi: data.roi,
-          reliability: data.reliability,
-        });
-        setEditPros(data.pros);
-        setEditCons(data.cons);
-        setEditAdvice(data.advice);
-        setEditWouldWorkAgain(data.wouldWorkAgain);
       } catch (err) {
         console.error('Error fetching review:', err);
         setError('An error occurred while loading the review');
@@ -111,67 +85,10 @@ export function ReviewDetail() {
     fetchReview();
   }, [id]);
 
-  const handleRatingChange = (category: string, value: number) => {
-    setEditRatings({ ...editRatings, [category]: value });
-  };
-
-  const handleSaveEdit = async () => {
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const overallRating = Object.values(editRatings).reduce((a, b) => a + b, 0) / Object.keys(editRatings).length;
-
-      const response = await fetch(`/api/reviews/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          overallRating,
-          professionalismRating: editRatings.professionalism,
-          communicationRating: editRatings.communication,
-          contentQualityRating: editRatings.contentQuality,
-          roiRating: editRatings.roi,
-          reliabilityRating: editRatings.reliability,
-          pros: editPros,
-          cons: editCons,
-          advice: editAdvice,
-          wouldWorkAgain: editWouldWorkAgain,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update review');
-      }
-
-      // Refresh the review data
-      const updatedData = await fetch(`/api/reviews/${id}`).then(r => r.json());
-      setReview(updatedData);
-      setIsEditing(false);
-    } catch (err) {
-      console.error('Error updating review:', err);
-      setError('Failed to update review. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    // Reset to original values
-    if (review) {
-      setEditRatings({
-        professionalism: review.professionalism,
-        communication: review.communication,
-        contentQuality: review.contentQuality,
-        roi: review.roi,
-        reliability: review.reliability,
-      });
-      setEditPros(review.pros);
-      setEditCons(review.cons);
-      setEditAdvice(review.advice);
-      setEditWouldWorkAgain(review.wouldWorkAgain);
-    }
+  const handleEditSuccess = async () => {
+    // Refresh the review data
+    const updatedData = await fetch(`/api/reviews/${id}`).then(r => r.json());
+    setReview(updatedData);
     setIsEditing(false);
   };
 
@@ -202,8 +119,30 @@ export function ReviewDetail() {
     );
   }
 
-  const editOverallRating = Object.values(editRatings).reduce((a, b) => a + b, 0) / Object.keys(editRatings).length;
-  const isEditFormValid = editOverallRating > 0 && editWouldWorkAgain !== null && editPros && editCons && editAdvice;
+  // If editing, show the ReviewForm component
+  if (isEditing && review) {
+    return (
+      <ReviewForm
+        mode="edit"
+        reviewId={id}
+        influencerId={review.influencer?.id}
+        influencerName={review.influencer?.name}
+        initialValues={{
+          professionalism: review.professionalism,
+          communication: review.communication,
+          contentQuality: review.contentQuality,
+          roi: review.roi,
+          reliability: review.reliability,
+          pros: review.pros,
+          cons: review.cons,
+          advice: review.advice,
+          wouldWorkAgain: review.wouldWorkAgain,
+        }}
+        onCancel={() => setIsEditing(false)}
+        onSuccess={handleEditSuccess}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -255,12 +194,10 @@ export function ReviewDetail() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold">
-                    {isEditing ? editOverallRating.toFixed(1) : review.overallRating.toFixed(1)}
-                  </span>
+                  <span className="text-3xl font-bold">{review.overallRating.toFixed(1)}</span>
                   <Star className="w-7 h-7 text-yellow-400" fill="currentColor" />
                 </div>
-                {review.wouldWorkAgain && !isEditing && (
+                {review.wouldWorkAgain && (
                   <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                     Would work again
                   </span>
@@ -285,7 +222,7 @@ export function ReviewDetail() {
                 {review.updatedAt !== review.createdAt && ' (edited)'}
               </p>
             </div>
-            {review.isAuthor && !isEditing && (
+            {review.isAuthor && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -296,182 +233,65 @@ export function ReviewDetail() {
             )}
           </div>
 
-          {error && isEditing && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{error}</p>
-            </div>
-          )}
-
           {/* Rating Breakdown */}
           <div className="mb-8">
             <h3 className="text-lg font-semibold mb-4">Rating Breakdown</h3>
-            {isEditing ? (
-              <div className="space-y-4">
-                {Object.entries(editRatings).map(([category, rating]) => (
-                  <div key={category}>
-                    <label className="block text-sm mb-2 capitalize">
-                      {category.replace(/([A-Z])/g, ' $1').trim()} *
-                    </label>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => handleRatingChange(category, value)}
-                          className="transition-transform hover:scale-110"
-                        >
-                          <Star
-                            className={`w-8 h-8 ${
-                              value <= rating
-                                ? 'text-yellow-400 fill-yellow-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Professionalism</p>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-xl font-semibold">{review.professionalism.toFixed(1)}</span>
-                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Communication</p>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-xl font-semibold">{review.communication.toFixed(1)}</span>
-                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Content Quality</p>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-xl font-semibold">{review.contentQuality.toFixed(1)}</span>
-                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">ROI</p>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-xl font-semibold">{review.roi.toFixed(1)}</span>
-                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Reliability</p>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-xl font-semibold">{review.reliability.toFixed(1)}</span>
-                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                  </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Professionalism</p>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xl font-semibold">{review.professionalism.toFixed(1)}</span>
+                  <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
                 </div>
               </div>
-            )}
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Communication</p>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xl font-semibold">{review.communication.toFixed(1)}</span>
+                  <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                </div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Content Quality</p>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xl font-semibold">{review.contentQuality.toFixed(1)}</span>
+                  <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                </div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">ROI</p>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xl font-semibold">{review.roi.toFixed(1)}</span>
+                  <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                </div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Reliability</p>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xl font-semibold">{review.reliability.toFixed(1)}</span>
+                  <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Written Feedback */}
           <div className="space-y-6">
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">What did you like?</h3>
-              {isEditing ? (
-                <textarea
-                  value={editPros}
-                  onChange={(e) => setEditPros(e.target.value)}
-                  required
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                />
-              ) : (
-                <p className="text-gray-900 whitespace-pre-wrap">{review.pros}</p>
-              )}
+              <p className="text-gray-900 whitespace-pre-wrap">{review.pros}</p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">What could have been better?</h3>
-              {isEditing ? (
-                <textarea
-                  value={editCons}
-                  onChange={(e) => setEditCons(e.target.value)}
-                  required
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                />
-              ) : (
-                <p className="text-gray-900 whitespace-pre-wrap">{review.cons}</p>
-              )}
+              <p className="text-gray-900 whitespace-pre-wrap">{review.cons}</p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Advice to other brands</h3>
-              {isEditing ? (
-                <textarea
-                  value={editAdvice}
-                  onChange={(e) => setEditAdvice(e.target.value)}
-                  required
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                />
-              ) : (
-                <p className="text-gray-900 whitespace-pre-wrap">{review.advice}</p>
-              )}
+              <p className="text-gray-900 whitespace-pre-wrap">{review.advice}</p>
             </div>
-
-            {isEditing && (
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Would you work with this influencer again? *
-                </label>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setEditWouldWorkAgain(true)}
-                    className={`flex-1 py-3 rounded-lg border-2 transition-all ${
-                      editWouldWorkAgain === true
-                        ? 'border-green-500 bg-green-50 text-green-700 font-medium'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditWouldWorkAgain(false)}
-                    className={`flex-1 py-3 rounded-lg border-2 transition-all ${
-                      editWouldWorkAgain === false
-                        ? 'border-red-500 bg-red-50 text-red-700 font-medium'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                    }`}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
-
-          {/* Edit Actions */}
-          {isEditing && (
-            <div className="flex gap-3 mt-8 pt-6 border-t">
-              <button
-                onClick={handleCancelEdit}
-                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                disabled={!isEditFormValid || submitting}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-              >
-                {submitting ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
