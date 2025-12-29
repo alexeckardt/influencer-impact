@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState } from 'react';
 import { Database } from '@influencer-platform/db';
 import { CheckCircle2, XCircle, User, Building, Calendar, ExternalLink } from 'lucide-react';
 import { trpc } from '@/lib/trpc/client';
@@ -9,8 +8,6 @@ import { trpc } from '@/lib/trpc/client';
 type ProspectUser = Database['public']['Tables']['prospect_users']['Row'];
 
 export function ProspectsTable() {
-  const [prospects, setProspects] = useState<ProspectUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
   const [approveModal, setApproveModal] = useState<{ isOpen: boolean; prospect: ProspectUser | null }>({
@@ -29,31 +26,12 @@ export function ProspectsTable() {
   });
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const supabase = createClient();
-
-  useEffect(() => {
-    fetchProspects();
-  }, []);
-
-  const fetchProspects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('prospect_users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setProspects(data || []);
-    } catch (error) {
-      console.error('Error fetching prospects:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use tRPC query for fetching prospects
+  const { data: prospects = [], isLoading: loading, refetch } = trpc.admin.getProspects.useQuery();
 
   const approveMutation = trpc.admin.approveProspect.useMutation({
     onSuccess: async () => {
-      await fetchProspects();
+      await refetch();
       setApproveModal({ isOpen: false, prospect: null });
     },
     onError: (error) => {
@@ -77,7 +55,7 @@ export function ProspectsTable() {
 
   const rejectMutation = trpc.admin.rejectProspect.useMutation({
     onSuccess: async () => {
-      await fetchProspects();
+      await refetch();
       setRejectModal({ isOpen: false, prospect: null });
       setRejectionReason('');
     },

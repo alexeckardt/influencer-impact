@@ -9,25 +9,63 @@ import { createServerSupabaseAdmin, approveProspectUser, rejectProspectUser } fr
 
 export const adminRouter = router({
   /**
+   * Get all prospect users
+   */
+  getProspects: adminProcedure
+    .input(z.object({}).optional())
+    .output(z.array(z.object({
+      id: z.string().uuid(),
+      first_name: z.string(),
+      last_name: z.string(),
+      email: z.string().email(),
+      company: z.string().nullable(),
+      job_title: z.string().nullable(),
+      years_experience: z.string().nullable(),
+      linkedin_url: z.string().nullable(),
+      status: z.enum(['pending', 'approved', 'rejected']),
+      rejection_reason: z.string().nullable(),
+      created_at: z.string(),
+      updated_at: z.string(),
+      reviewed_at: z.string().nullable(),
+      reviewed_by: z.string().nullable(),
+    })))
+    .query(async () => {
+      const supabase = await createServerSupabaseAdmin();
+      
+      const { data, error } = await supabase
+        .from('prospect_users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to fetch prospects: ${error.message}`);
+      }
+
+      return data || [];
+    }),
+
+  /**
    * Approve a prospect user
    */
   approveProspect: adminProcedure
     .input(z.object({ prospectId: z.string().uuid() }))
     .output(ApproveProspectResponseSchema)
     .mutation(async ({ ctx, input }) => {
-      const supabase = await createServerSupabaseAdmin();
-      
       // Approve the prospect user
       const approvedUser = await approveProspectUser(input.prospectId, ctx.user.id);
 
-      // Send approval email
+      // Send approval email asynchronously (fire-and-forget to avoid blocking the response)
       if (approvedUser.user.email && approvedUser.tempPassword) {
         const { sendApprovalEmail } = await import('@/lib/emails');
-        await sendApprovalEmail(
+        // Don't await - let email send in background
+        sendApprovalEmail(
           approvedUser.user.email,
           approvedUser.user.user_metadata?.first_name || 'User',
           approvedUser.tempPassword
-        );
+        ).catch((error) => {
+          console.error('Failed to send approval email:', error);
+          // Email failure shouldn't fail the approval
+        });
       }
 
       return {
