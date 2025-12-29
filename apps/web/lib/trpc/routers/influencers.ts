@@ -17,6 +17,22 @@ export const influencersRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .output(InfluencerDetailResponseSchema)
     .query(async ({ ctx, input }) => {
+      // Record that user viewed this influencer (fire and forget)
+      ctx.supabase
+        .from('user_influencer_views')
+        .upsert({ //update row if exists, insert if dne
+          user_id: ctx.user.id,
+          influencer_id: input.id,
+          last_seen: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,influencer_id',
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error recording influencer view:', error);
+          }
+        });
+
       // Fetch influencer with platforms
       const { data: influencer, error: influencerError } = await ctx.supabase
         .from('influencers')
@@ -304,6 +320,159 @@ export const influencersRouter = router({
           createdAt: existingReview.created_at,
           rating: existingReview.overall_rating,
         } : null,
+      };
+    }),
+
+  /**
+   * Record that user viewed an influencer
+   * Uses upsert to either create new view or update existing one
+   */
+  recordView: protectedProcedure
+    .input(z.object({ influencerId: z.string().uuid() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const { error } = await ctx.supabase
+        .from('user_influencer_views')
+        .upsert({
+          user_id: ctx.user.id,
+          influencer_id: input.influencerId,
+          last_seen: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,influencer_id',
+        });
+
+      if (error) {
+        console.error('Error recording influencer view:', error);
+        throw new Error('Failed to record view');
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Get recently viewed influencers for the current user
+   * Returns paginated list ordered by most recent first
+   */
+  getRecentlyViewed: protectedProcedure
+    .input(z.object({
+      page: z.number().min(1).default(1),
+      perPage: z.number().min(1).max(50).default(12),
+    }))
+    .output(z.object({
+      influencers: z.array(z.object({
+        id: z.string().uuid(),
+        name: z.string(),
+        bio: z.string().nullable(),
+        niche: z.string(),
+        verified: z.boolean(),
+        profileImageUrl: z.string().nullable(),
+        platforms: z.array(z.object({
+          platform: z.string(),
+          username: z.string(),
+          url: z.string(),
+          followerCount: z.number().nullable(),
+        })),
+        rating: z.number(),
+        reviewCount: z.number(),
+        lastViewedAt: z.string(),
+      })),
+      pagination: z.object({
+        page: z.number(),
+        perPage: z.number(),
+        total: z.number(),
+        totalPages: z.number(),
+        hasMore: z.boolean(),
+      }),
+    }))
+    .query(async ({ ctx, input }) => {
+      const offset = (input.page - 1) * input.perPage;
+
+      // Fetch recently viewed influencers with full details
+      const { data: viewedInfluencers, error, count } = await ctx.supabase
+        .from('user_influencer_views')
+        .select(`
+          influencer_id,
+          last_seen,
+          influencer:influencers!inner (
+            id,
+            name,
+            bio,
+            primary_niche,
+            verified,
+            profile_image_url,
+            influencer_handles (
+              platform,
+              username,
+              url,
+              follower_count
+            )
+          )
+        `, { count: 'exact' })
+        .eq('user_id', ctx.user.id)
+        .order('last_seen', { ascending: false })
+        .range(offset, offset + input.perPage - 1);
+
+      if (error) {
+        console.error('Error fetching recently viewed influencers:', error);
+        throw new Error('Failed to fetch recently viewed influencers');
+      }
+
+      // Get ratings for all influencers
+      const influencerIds = (viewedInfluencers || []).map((v: any) => v.influencer_id);
+      
+      let ratingsData: any = {};
+      if (influencerIds.length > 0) {
+        const { data: reviews } = await ctx.supabase
+          .from('reviews')
+          .select('influencer_id, overall_rating')
+          .in('influencer_id', influencerIds);
+
+        ratingsData = (reviews || []).reduce((acc: any, review: any) => {
+          if (!acc[review.influencer_id]) {
+            acc[review.influencer_id] = { total: 0, count: 0 };
+          }
+          acc[review.influencer_id].total += review.overall_rating;
+          acc[review.influencer_id].count += 1;
+          return acc;
+        }, {});
+      }
+
+      // Format response
+      const formattedInfluencers = (viewedInfluencers || []).map((item: any) => {
+        const influencer = item.influencer;
+        const ratingInfo = ratingsData[influencer.id] || { total: 0, count: 0 };
+        const avgRating = ratingInfo.count > 0 ? ratingInfo.total / ratingInfo.count : 0;
+
+        return {
+          id: influencer.id,
+          name: influencer.name,
+          bio: influencer.bio,
+          niche: influencer.primary_niche,
+          verified: influencer.verified,
+          profileImageUrl: influencer.profile_image_url,
+          platforms: (influencer.influencer_handles || []).map((p: any) => ({
+            platform: p.platform,
+            username: p.username,
+            url: p.url,
+            followerCount: p.follower_count,
+          })),
+          rating: Number(avgRating.toFixed(1)),
+          reviewCount: ratingInfo.count,
+          lastViewedAt: item.last_seen,
+        };
+      });
+
+      const totalPages = Math.ceil((count || 0) / input.perPage);
+
+      return {
+        influencers: formattedInfluencers,
+        pagination: {
+          page: input.page,
+          perPage: input.perPage,
+          total: count || 0,
+          totalPages,
+          hasMore: input.page < totalPages,
+        },
       };
     }),
 });

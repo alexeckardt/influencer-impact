@@ -224,3 +224,25 @@ export const reviewReports = pgTable('review_reports', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
+
+// ============================================================================
+// User Influencer Views (tracking recently viewed influencers)
+// ============================================================================
+export const userInfluencerViews = pgTable(
+  'user_influencer_views',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    influencerId: uuid('influencer_id')
+      .notNull()
+      .references(() => influencers.id, { onDelete: 'cascade' }),
+    lastSeen: timestamp('last_seen', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: {
+      name: 'user_influencer_views_pkey',
+      columns: [table.userId, table.influencerId],
+    },
+  })
+);
