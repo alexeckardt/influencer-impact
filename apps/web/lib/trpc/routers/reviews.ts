@@ -9,6 +9,7 @@ import {
   getReviewInputSchema,
   checkUserReviewInputSchema,
 } from '@influencer-platform/shared';
+import { ReviewDetailResponseSchema } from '@influencer-platform/shared';
 
 export const reviewsRouter = router({
   /**
@@ -103,16 +104,32 @@ export const reviewsRouter = router({
    */
   getById: publicProcedure
     .input(getReviewInputSchema)
+    .output(ReviewDetailResponseSchema)
     .query(async ({ ctx, input }) => {
       const { data: review, error } = await ctx.supabase
         .from('reviews')
         .select(`
-          *,
+          id,
+          influencer_id,
+          reviewer_id,
+          overall_rating,
+          professionalism_rating,
+          communication_rating,
+          content_quality_rating,
+          roi_rating,
+          reliability_rating,
+          pros,
+          cons,
+          advice,
+          would_work_again,
+          created_at,
+          updated_at,
           influencer:influencers!reviews_influencer_id_fkey (
             id,
             name,
-            platform,
-            handle
+            primary_niche,
+            verified,
+            profile_image_url
           ),
           reviewer:users!reviews_reviewer_id_fkey (
             id,
@@ -127,10 +144,24 @@ export const reviewsRouter = router({
         .single();
 
       if (error || !review) {
+        console.error('Error fetching review:', error);
         throw new Error('Review not found');
       }
 
-      return review;
+      // Transform nested arrays to objects/null to match schema
+      const influencer = Array.isArray(review.influencer) 
+        ? (review.influencer[0] ?? null) 
+        : review.influencer;
+      
+      const reviewer = Array.isArray(review.reviewer) 
+        ? (review.reviewer[0] ?? null) 
+        : review.reviewer;
+
+      return {
+        ...review,
+        influencer,
+        reviewer,
+      };
     }),
 
   /**
