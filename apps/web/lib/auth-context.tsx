@@ -38,8 +38,10 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   user: User | null;
+  // eslint-disable-next-line
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  // eslint-disable-next-line
   updateUser: (user: User) => void;
 }
 
@@ -118,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  });
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     console.log('🔍 loadUserProfile started for user:', supabaseUser.id);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { X, Star } from 'lucide-react';
 
 interface ReviewModalProps {
@@ -24,7 +24,7 @@ export function ReviewModal({ influencerName, onClose, onSubmit }: ReviewModalPr
     setRatings({ ...ratings, [category]: value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     // In real app, would send to backend
     onSubmit();

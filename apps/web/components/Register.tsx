@@ -1,13 +1,9 @@
-import { useState } from 'react';
-import { Star, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ChangeEvent, FormEvent, useState } from 'react';
+import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-interface RegisterProps {
-  onRegister: () => void;
-}
-
-export function Register({ onRegister }: RegisterProps) {
+export function Register() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -25,7 +21,7 @@ export function Register({ onRegister }: RegisterProps) {
   const router = useRouter();
   const supabase = createClient();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -42,7 +38,7 @@ export function Register({ onRegister }: RegisterProps) {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     
@@ -78,7 +74,7 @@ export function Register({ onRegister }: RegisterProps) {
       }
 
       setSubmitted(true);
-      onRegister();
+
     } catch (error) {
       console.error('Registration error:', error);
       setError('An unexpected error occurred. Please try again.');

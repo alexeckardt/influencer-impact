@@ -1,8 +1,6 @@
-'use client';
 import { Footer } from '@/components/Footer';
 import { Login } from '@/components/Login';
 import { NavBar } from '@/components/NavBar';
-import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
 

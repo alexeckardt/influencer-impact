@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Flag, User, Calendar, AlertCircle, ExternalLink } from 'lucide-react';
 import { trpc } from '@/lib/trpc/client';
 
@@ -57,8 +57,17 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: ReviewReportModalProps) {
+  // Initialize state with the report status, reset when report changes
   const [selectedStatus, setSelectedStatus] = useState<string>(report?.status || 'open');
   const [error, setError] = useState<string | null>(null);
+  const [lastReportId, setLastReportId] = useState<string | null>(null);
+
+  // Reset state when a different report is opened
+  if (isOpen && report && report.id !== lastReportId) {
+    setSelectedStatus(report.status);
+    setError(null);
+    setLastReportId(report.id);
+  }
 
   // tRPC mutation for updating report status
   const updateStatusMutation = trpc.reviewReports.updateReportStatus.useMutation({
@@ -70,13 +79,6 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
       setError(err.message || 'An error occurred');
     },
   });
-
-  // Update selectedStatus when report changes
-  useEffect(() => {
-    if (report?.status) {
-      setSelectedStatus(report.status);
-    }
-  }, [report?.status]);
 
   if (!isOpen || !report) return null;
 

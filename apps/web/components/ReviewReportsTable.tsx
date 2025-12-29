@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Flag, AlertTriangle, Calendar } from 'lucide-react';
 import { ReviewReportModal } from '@/components/ReviewReportModal';
 
@@ -49,11 +49,7 @@ export function ReviewReportsTable() {
   const [totalReports, setTotalReports] = useState(0);
   const reportsPerPage = 10;
 
-  useEffect(() => {
-    fetchReviewReports();
-  }, [showAllReports, currentPage]);
-
-  const fetchReviewReports = async () => {
+  const fetchReviewReports = useCallback(async () => {
     try {
       setReportsLoading(true);
       const params = new URLSearchParams();
@@ -80,7 +76,11 @@ export function ReviewReportsTable() {
     } finally {
       setReportsLoading(false);
     }
-  };
+  }, [showAllReports, currentPage]);
+
+  useEffect(() => {
+    fetchReviewReports();
+  }, [fetchReviewReports]);
 
   const openReportModal = (report: ReviewReport) => {
     setSelectedReport(report);

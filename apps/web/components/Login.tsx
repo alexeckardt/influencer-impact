@@ -1,15 +1,11 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
-import { Star, ArrowLeft, AlertCircle } from 'lucide-react';
+import { FormEvent, useState } from 'react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
-interface LoginProps {
-  children?: ReactNode;
-}
-
-export function Login({children, ...props}: LoginProps) {
+export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +18,7 @@ export function Login({children, ...props}: LoginProps) {
    * Handle form submission
    * @param e Form event
    */
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);

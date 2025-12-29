@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { X, Flag } from 'lucide-react';
 import { trpc } from '@/lib/trpc/client';
 import { reportReasonSchema } from '@influencer-platform/shared';
@@ -51,7 +51,7 @@ export function ReportReviewModal({ reviewId, isOpen, onClose, onSuccess }: Repo
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     if (selectedReasons.length === 0) {
