@@ -3,7 +3,7 @@
 CREATE TABLE user_influencer_views (
   
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    influencer_id UUID NOT NULL REFERENCES influencer(id) ON DELETE CASCADE,
+    influencer_id UUID NOT NULL REFERENCES influencers(id) ON DELETE CASCADE,
 
     last_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, influencer_id)

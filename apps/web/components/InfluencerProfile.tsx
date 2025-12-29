@@ -42,6 +42,16 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
     { enabled: !!influencerId },
   );
 
+  // Record view mutation
+  const recordViewMutation = trpc.influencers.recordView.useMutation();
+
+  // Record view when component mounts
+  useEffect(() => {
+    if (influencerId && !isLoading && influencer) {
+      recordViewMutation.mutate({ influencerId });
+    }
+  }, [influencerId, influencer]); // Only run when influencer data is loaded
+
   useEffect(() => {
     if (queryError) {
       if (queryError.message.includes('not found')) {
