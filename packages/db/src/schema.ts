@@ -200,3 +200,27 @@ export const influencerStats = pgTable('influencer_stats', {
   engagementScore: numeric('engagement_score', { precision: 5, scale: 2 }).default('0'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
+
+// ============================================================================
+// Review Reports Table
+// ============================================================================
+export const reviewReports = pgTable('review_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reviewId: uuid('review_id')
+    .notNull()
+    .references(() => reviews.id, { onDelete: 'cascade' }),
+  reporterId: uuid('reporter_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  reasons: text('reasons').array().notNull(),
+  additionalInfo: text('additional_info'),
+  status: varchar('status', {
+    enum: ['open', 'investigating', 'closed'],
+  })
+    .default('open')
+    .notNull(),
+  reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
