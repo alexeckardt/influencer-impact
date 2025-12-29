@@ -48,7 +48,7 @@ export async function middleware(req: NextRequest) {
   try {
     const { data: dbUser, error } = await supabase
       .from('users')
-      .select('has_temp_password')
+      .select('has_temp_password, role')
       .eq('id', user.id)
       .single();
 
@@ -67,6 +67,14 @@ export async function middleware(req: NextRequest) {
       const redirectUrl = req.nextUrl.clone();
       redirectUrl.pathname = '/login';
       return NextResponse.redirect(redirectUrl);
+    }
+
+    // Check if user is trying to access admin routes
+    if (pathname.startsWith('/admin')) {
+      if (dbUser.role !== 'admin') {
+        // Redirect non-admins to 404
+        return NextResponse.rewrite(new URL('/404', req.url));
+      }
     }
 
     // If user has temp password and NOT on setup-account page, redirect there

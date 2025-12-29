@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Star, Edit2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Star, Edit2, ExternalLink, Flag } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { ReviewForm } from '@/components/ReviewForm';
+import { ReportReviewModal } from '@/components/ReportReviewModal';
 
 interface Influencer {
   id: string;
@@ -50,6 +51,9 @@ export function ReviewDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [hasReported, setHasReported] = useState(false);
+  const [checkingReportStatus, setCheckingReportStatus] = useState(true);
 
   console.log("Review Object:", review);
 
@@ -83,6 +87,26 @@ export function ReviewDetail() {
     };
 
     fetchReview();
+  }, [id]);
+
+  useEffect(() => {
+    const checkReportStatus = async () => {
+      try {
+        setCheckingReportStatus(true);
+        const response = await fetch(`/api/reviews/${id}/report`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setHasReported(data.hasReported);
+        }
+      } catch (err) {
+        console.error('Error checking report status:', err);
+      } finally {
+        setCheckingReportStatus(false);
+      }
+    };
+
+    checkReportStatus();
   }, [id]);
 
   const handleEditSuccess = async () => {
@@ -222,15 +246,28 @@ export function ReviewDetail() {
                 {review.updatedAt !== review.createdAt && ' (edited)'}
               </p>
             </div>
-            {review.isAuthor && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit Review
-              </button>
-            )}
+            <div className="flex gap-2">
+              {!review.isAuthor && (
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  disabled={hasReported || checkingReportStatus}
+                  className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:bg-red-100 disabled:border-none"
+                  title={hasReported ? 'You have already reported this review' : 'Report this review'}
+                >
+                  <Flag className="w-4 h-4" />
+                  {hasReported ? 'Reported' : 'Report'}
+                </button>
+              )}
+              {review.isAuthor && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit Review
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Rating Breakdown */}
@@ -294,6 +331,18 @@ export function ReviewDetail() {
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportReviewModal
+        reviewId={id}
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onSuccess={() => {
+          setHasReported(true);
+          // Optional: show success message
+          alert('Report submitted successfully. Thank you for helping us maintain quality!');
+        }}
+      />
     </div>
   );
 }
