@@ -1,11 +1,38 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, Search, Filter, LogOut, Instagram, Youtube, Twitter, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 
 interface SearchInfluencersProps {
+}
+
+interface Platform {
+  platform: string;
+  username: string;
+  url: string;
+  follower_count: number;
+}
+
+interface Influencer {
+  id: string;
+  name: string;
+  bio: string;
+  niche: string;
+  verified: boolean;
+  profileImageUrl: string;
+  platforms: Platform[];
+  rating: number;
+  reviewCount: number;
+}
+
+interface PaginationInfo {
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
 }
 
 // On this page, would be cool to have "My Influencers" showing - idea here: https://docs.google.com/document/d/1hbp4jKx5jPMFJfIQzeSygFezd_c7GsXw62bF0n14gmw/edit?usp=sharing
@@ -153,29 +180,75 @@ export function SearchInfluencers({}: SearchInfluencersProps) {
   const [selectedNiche, setSelectedNiche] = useState('All Niches');
   const [minRating, setMinRating] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState('All Locations');
-  //don't need to include eng rate to profiles or in search filters.
-  const [minEngagement, setMinEngagement] = useState(0);
-
-  const filteredInfluencers = influencers.filter((influencer) => {
-    const matchesSearch =
-      influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      influencer.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      influencer.niche.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesNiche = selectedNiche === 'All Niches' || influencer.niche === selectedNiche;
-    const matchesRating = influencer.rating >= minRating;
-    const matchesLocation = selectedLocation === 'All Locations' || influencer.location === selectedLocation;
-    const matchesEngagement = influencer.engagementRate >= minEngagement;
-    return matchesSearch && matchesNiche && matchesRating && matchesLocation && matchesEngagement;
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    perPage: 12,
+    total: 0,
+    totalPages: 0,
+    hasMore: false,
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
 
+  // Fetch influencers from API
+  const fetchInfluencers = async (page: number = 1) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        search: searchQuery,
+        minRating: minRating.toString(),
+      });
+
+      if (selectedNiche && selectedNiche !== 'All Niches') {
+        params.append('niche', selectedNiche);
+      }
+
+      if (verifiedOnly) {
+        params.append('verified', 'true');
+      }
+
+      const response = await fetch(`/api/influencers/search?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch influencers');
+      }
+
+      const data = await response.json();
+      setInfluencers(data.influencers);
+      setPagination(data.pagination);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setInfluencers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch on mount and when filters change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchInfluencers(1);
+    }, 300); // Debounce search
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, selectedNiche, minRating, verifiedOnly]);
+
+  const handlePageChange = (newPage: number) => {
+    fetchInfluencers(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const onViewProfile = (influencerId: string) => {
-    // Navigate to influencer profile page
-    console.log(`View profile for influencer ID: ${influencerId}`);
     router.push(`/influencer/${influencerId}`);
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -191,7 +264,7 @@ export function SearchInfluencers({}: SearchInfluencersProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, handle, or niche..."
+                placeholder="Search by name or niche..."
                 className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -237,125 +310,157 @@ export function SearchInfluencers({}: SearchInfluencersProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm mb-2">Location</label>
-                <select
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {locations.map((location) => (
-                    <option key={location} value={location}>
-                      {location}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm mb-2">Minimum Engagement Rate: {minEngagement > 0 ? minEngagement.toFixed(1) : 'Any'}</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  step="0.5"
-                  value={minEngagement}
-                  onChange={(e) => setMinEngagement(parseFloat(e.target.value))}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-sm text-gray-600 mt-1">
-                  <span>Any</span>
-                  <span>10.0</span>
-                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={verifiedOnly}
+                    onChange={(e) => setVerifiedOnly(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm">Verified influencers only</span>
+                </label>
               </div>
             </div>
           )}
         </div>
 
         {/* Results */}
-        <div className="mb-4">
-          <p className="text-gray-600">
-            Showing {filteredInfluencers.length} influencer{filteredInfluencers.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Influencer Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredInfluencers.map((influencer) => (
-            <div
-              key={influencer.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => onViewProfile(influencer.id)}
-            >
-              <div className="flex items-start gap-4 mb-4">
-                <ImageWithFallback
-                  src={influencer.image}
-                  alt={influencer.name}
-                  className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-xl truncate">{influencer.name}</h3>
-                  <p className="text-gray-600 text-sm truncate">{influencer.handle}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                      <span className="text-sm">{influencer.rating.toFixed(1)}</span>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      ({influencer.reviewCount} reviews)
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                  {influencer.niche}
-                </span>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">Platforms:</p>
-                <div className="flex gap-2">
-                  {influencer.platforms.slice(0, 3).map((platform) => (
-                    <span
-                      key={platform}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
-                    >
-                      {platform}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {influencer.topTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredInfluencers.length === 0 && (
+        {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-600 mb-4">No influencers found matching your criteria</p>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="text-gray-600 mt-4">Loading influencers...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 mb-4">{error}</p>
             <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedNiche('All Niches');
-                setMinRating(0);
-                setSelectedLocation('All Locations');
-                setMinEngagement(0);
-              }}
+              onClick={() => fetchInfluencers(pagination.page)}
               className="text-blue-600 hover:text-blue-700"
             >
-              Clear filters
+              Try again
             </button>
           </div>
+        ) : (
+          <>
+            <div className="mb-4">
+              <p className="text-gray-600">
+                Showing {influencers.length} of {pagination.total} influencer{pagination.total !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Influencer Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {influencers.map((influencer) => (
+                <div
+                  key={influencer.id}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => onViewProfile(influencer.id)}
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <ImageWithFallback
+                      src={influencer.profileImageUrl}
+                      alt={influencer.name}
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl truncate">{influencer.name}</h3>
+                        {influencer.verified && (
+                          <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                          <span className="text-sm">{influencer.rating > 0 ? influencer.rating.toFixed(1) : 'N/A'}</span>
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          ({influencer.reviewCount} review{influencer.reviewCount !== 1 ? 's' : ''})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                      {influencer.niche}
+                    </span>
+                  </div>
+
+                  {influencer.bio && (
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                      {influencer.bio}
+                    </p>
+                  )}
+
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 mb-2">Platforms:</p>
+                    <div className="flex gap-2">
+                      {influencer.platforms.slice(0, 3).map((handle) => (
+                        <span
+                          key={handle.platform}
+                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs capitalize"
+                        >
+                          {handle.platform}
+                        </span>
+                      ))}
+                      {influencer.platforms.length > 3 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                          +{influencer.platforms.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="mt-8 flex justify-center items-center gap-4">
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </button>
+                
+                <span className="text-gray-600">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={!pagination.hasMore}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {influencers.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-600 mb-4">No influencers found matching your criteria</p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedNiche('All Niches');
+                    setMinRating(0);
+                    setVerifiedOnly(false);
+                  }}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

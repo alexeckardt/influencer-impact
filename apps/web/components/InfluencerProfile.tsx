@@ -1,11 +1,66 @@
-import { useState } from 'react';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Star, ArrowLeft, LogOut, Instagram, Youtube, Twitter, TrendingUp, MessageSquare, DollarSign, Clock, ThumbsUp, ExternalLink } from 'lucide-react';
-import { ReviewModal } from './ReviewModal';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 
 interface InfluencerProfileProps {
   influencerId: string | null;
+}
+
+interface Platform {
+  platform: string;
+  username: string;
+  url: string;
+  followerCount: number;
+}
+
+interface Reviewer {
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  jobTitle: string;
+  yearsInPR: string;
+}
+
+interface Review {
+  id: string;
+  overallRating: number;
+  professionalism: number;
+  communication: number;
+  contentQuality: number;
+  roi: number;
+  reliability: number;
+  pros: string;
+  cons: string;
+  advice: string;
+  wouldWorkAgain: boolean;
+  createdAt: string;
+  reviewer: Reviewer | null;
+}
+
+interface Influencer {
+  id: string;
+  name: string;
+  email: string;
+  bio: string;
+  niche: string;
+  location: string;
+  profileImageUrl: string;
+  verified: boolean;
+  platforms: Platform[];
+  ratings: {
+    overall: number;
+    professionalism: number;
+    communication: number;
+    contentQuality: number;
+    roi: number;
+    reliability: number;
+  };
+  totalReviews: number;
+  engagementRate: number;
+  reviews: Review[];
 }
 
 // Mock data
@@ -135,22 +190,96 @@ const influencersData: { [key: string]: any } = {
   },
 };
 
+// Helper to get platform icon
+const getPlatformIcon = (platform: string) => {
+  const platformLower = platform.toLowerCase();
+  if (platformLower.includes('instagram')) return Instagram;
+  if (platformLower.includes('youtube')) return Youtube;
+  if (platformLower.includes('twitter') || platformLower.includes('x')) return Twitter;
+  if (platformLower.includes('tiktok')) return TrendingUp;
+  if (platformLower.includes('facebook')) return MessageSquare;
+  return MessageSquare; // default
+};
+
+// Helper to format follower count
+const formatFollowerCount = (count: number): string => {
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toString();
+};
+
 export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const influencer = influencerId ? influencersData[influencerId] : null;
+  const [influencer, setInfluencer] = useState<Influencer | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
 
+  useEffect(() => {
+    if (!influencerId) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchInfluencer = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(`/api/influencers/${influencerId}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError('Influencer not found');
+          } else if (response.status === 401) {
+            setError('Please log in to view this profile');
+          } else {
+            setError('Failed to load influencer profile');
+          }
+          return;
+        }
+
+        const data = await response.json();
+        setInfluencer(data);
+      } catch (err) {
+        console.error('Error fetching influencer:', err);
+        setError('An error occurred while loading the profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInfluencer();
+  }, [influencerId]);
+
   const onBack = () => {
     router.back();
+  };
+
+  const startWriteReview = () => {
+    router.push(`/influencer/${influencerId}/review`);
   }
 
-
-  if (!influencer) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Influencer not found</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 mt-4">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !influencer) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">{error || 'Influencer not found'}</p>
           <button
             onClick={onBack}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -179,14 +308,23 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-shrink-0">
               <ImageWithFallback
-                src={influencer.image}
+                src={influencer.profileImageUrl}
                 alt={influencer.name}
                 className="w-32 h-32 rounded-full object-cover"
               />
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl mb-2">{influencer.name}</h1>
-              <p className="text-gray-600 mb-4">{influencer.handle}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-3xl">{influencer.name}</h1>
+                {influencer.verified && (
+                  <svg className="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+              {influencer.bio && (
+                <p className="text-gray-600 mb-4">{influencer.bio}</p>
+              )}
               <div className="flex items-center gap-2 mb-4">
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
                   {influencer.niche}
@@ -195,7 +333,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
                   {influencer.location}
                 </span>
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                  {influencer.engagementRate}% engagement
+                  {influencer.engagementRate.toFixed(1)}% engagement
                 </span>
               </div>
               
@@ -203,34 +341,37 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
               <div className="mb-6">
                 <p className="text-sm text-gray-600 mb-2">Social Media Profiles:</p>
                 <div className="flex flex-wrap gap-3">
-                  {influencer.platforms.map((platform: any, index: number) => (
-                    <a
-                      key={index}
-                      href={platform.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <platform.icon className="w-4 h-4 text-gray-600" />
-                      <span className="text-sm text-gray-700">{platform.name}</span>
-                      <span className="text-xs text-gray-500">({platform.followers})</span>
-                      <ExternalLink className="w-3 h-3 text-gray-400" />
-                    </a>
-                  ))}
+                  {influencer.platforms.map((platform, index) => {
+                    const Icon = getPlatformIcon(platform.platform);
+                    return (
+                      <a
+                        key={index}
+                        href={platform.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Icon className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm text-gray-700 capitalize">{platform.platform}</span>
+                        <span className="text-xs text-gray-500">({formatFollowerCount(platform.followerCount)})</span>
+                        <ExternalLink className="w-3 h-3 text-gray-400" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
               
               <div className="flex items-center gap-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-3xl">{influencer.overallRating.toFixed(1)}</span>
+                    <span className="text-3xl">{influencer.ratings.overall > 0 ? influencer.ratings.overall.toFixed(1) : 'N/A'}</span>
                     <Star className="w-6 h-6 text-yellow-400" fill="currentColor" />
                   </div>
-                  <p className="text-sm text-gray-600">{influencer.totalReviews} reviews</p>
+                  <p className="text-sm text-gray-600">{influencer.totalReviews} review{influencer.totalReviews !== 1 ? 's' : ''}</p>
                 </div>
                 <button
-                  onClick={() => setShowReviewModal(true)}
+                  onClick={startWriteReview}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Write a Review
@@ -244,7 +385,9 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-6">
           <h2 className="text-2xl mb-6">Rating Breakdown</h2>
           <div className="space-y-4">
-            {Object.entries(influencer.ratings).map(([category, rating]: [string, any]) => (
+            {Object.entries(influencer.ratings)
+              .filter(([category]) => category !== 'overall')
+              .map(([category, rating]: [string, number]) => (
               <div key={category}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="capitalize text-gray-700">
@@ -269,12 +412,31 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
         {/* Reviews */}
         <div className="space-y-6">
           <h2 className="text-2xl">Reviews ({influencer.reviews.length})</h2>
-          {influencer.reviews.map((review: any) => (
-            <div key={review.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          {influencer.reviews.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+              <p className="text-gray-600 mb-3">No reviews yet</p>
+              <p className="text-sm text-gray-500 mb-7">Be the first to review {influencer.name}!</p>
+
+              <button
+                  onClick={startWriteReview}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Write a Review
+                </button>
+            </div>
+          ) : (
+            influencer.reviews.map((review) => (
+            <div 
+              key={review.id} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => router.push(`/review/${review.id}`)}
+            >
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span>{review.reviewer}</span>
+                    <span>
+                      {review.reviewer ? `${review.reviewer.firstName} ${review.reviewer.lastName}` : 'Anonymous'}
+                    </span>
                     {review.wouldWorkAgain && (
                       <span className="flex items-center gap-1 text-green-600 text-sm">
                         <ThumbsUp className="w-4 h-4" />
@@ -282,9 +444,11 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600">
-                    {review.company} • {review.yearsInPR} experience
-                  </p>
+                  {review.reviewer && (
+                    <p className="text-sm text-gray-600">
+                      {review.reviewer.jobTitle} at {review.reviewer.companyName} • {review.reviewer.yearsInPR} experience
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="flex items-center gap-1 mb-1">
@@ -292,7 +456,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
                     <Star className="w-5 h-5 text-yellow-400" fill="currentColor" />
                   </div>
                   <p className="text-sm text-gray-500">
-                    {new Date(review.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
               </div>
@@ -351,20 +515,10 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
       </div>
-
-      {showReviewModal && (
-        <ReviewModal
-          influencerName={influencer.name}
-          onClose={() => setShowReviewModal(false)}
-          onSubmit={() => {
-            setShowReviewModal(false);
-            // In real app, would refresh reviews
-          }}
-        />
-      )}
     </div>
   );
 }
