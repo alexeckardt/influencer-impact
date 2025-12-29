@@ -6,157 +6,8 @@ import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc/client';
 
-interface SearchInfluencersProps {
-}
-
-interface Platform {
-  platform: string;
-  username: string;
-  url: string;
-  follower_count: number;
-}
-
-interface Influencer {
-  id: string;
-  name: string;
-  bio: string;
-  niche: string;
-  verified: boolean;
-  profileImageUrl: string;
-  platforms: Platform[];
-  rating: number;
-  reviewCount: number;
-}
-
-interface PaginationInfo {
-  page: number;
-  perPage: number;
-  total: number;
-  totalPages: number;
-  hasMore: boolean;
-}
-
 // On this page, would be cool to have "My Influencers" showing - idea here: https://docs.google.com/document/d/1hbp4jKx5jPMFJfIQzeSygFezd_c7GsXw62bF0n14gmw/edit?usp=sharing
 
-// Mock influencer data
-//Obviously, in the actual website, the search bar will have to pull for data when entering an influencer's Instagram/TikTok/YouTube/Facebook URL
-const influencers = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    handle: '@sarahjohnson',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    //likely won't include niches
-    niche: 'Fashion & Lifestyle',
-    platforms: ['Instagram', 'TikTok', 'YouTube'],
-    followers: '850K',
-    rating: 4.6,
-    reviewCount: 24,
-    //not sure how easy it is to scrape reviews and include top tags, this isn't necessary
-    topTags: ['Professional', 'Creative', 'Reliable'],
-    location: 'U.S.',
-    //can delete engagement rate
-    engagementRate: 4.2,
-  },
-  {
-    id: '2',
-    name: 'Marcus Chen',
-    handle: '@marcustech',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Technology & Gadgets',
-    platforms: ['YouTube', 'Twitter', 'Instagram'],
-    followers: '2.1M',
-    rating: 4.2,
-    reviewCount: 18,
-    topTags: ['Knowledgeable', 'Thorough', 'Technical'],
-    location: 'Canada',
-    engagementRate: 3.8,
-  },
-  {
-    id: '3',
-    name: 'Emma Rodriguez',
-    handle: '@emmafit',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Health & Fitness',
-    platforms: ['Instagram', 'YouTube', 'TikTok'],
-    followers: '1.3M',
-    rating: 4.8,
-    reviewCount: 32,
-    topTags: ['Authentic', 'Engaging', 'Professional'],
-    location: 'U.S.',
-    engagementRate: 6.5,
-  },
-  {
-    id: '4',
-    name: 'David Park',
-    handle: '@davidfoodie',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Food & Culinary',
-    platforms: ['Instagram', 'TikTok', 'YouTube'],
-    followers: '920K',
-    rating: 4.5,
-    reviewCount: 27,
-    topTags: ['Creative', 'Reliable', 'Great ROI'],
-    location: 'Canada',
-    engagementRate: 5.1,
-  },
-  {
-    id: '5',
-    name: 'Lisa Martinez',
-    handle: '@lisamakeup',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Beauty & Makeup',
-    platforms: ['Instagram', 'YouTube', 'TikTok'],
-    followers: '1.8M',
-    rating: 4.7,
-    reviewCount: 41,
-    topTags: ['Professional', 'High Quality', 'Collaborative'],
-    location: 'U.S.',
-    engagementRate: 7.2,
-  },
-  {
-    id: '6',
-    name: 'Jason Wright',
-    handle: '@jasontravel',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Travel & Adventure',
-    platforms: ['Instagram', 'YouTube', 'TikTok'],
-    followers: '650K',
-    rating: 4.4,
-    reviewCount: 19,
-    topTags: ['Adventurous', 'Authentic', 'Good Engagement'],
-    location: 'Canada',
-    engagementRate: 4.8,
-  },
-  {
-    id: '7',
-    name: 'Nina Patel',
-    handle: '@ninahome',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Home & Interior',
-    platforms: ['Instagram', 'Pinterest', 'YouTube'],
-    followers: '780K',
-    rating: 4.9,
-    reviewCount: 28,
-    topTags: ['Creative', 'Detail-oriented', 'Excellent ROI'],
-    location: 'U.S.',
-    engagementRate: 5.9,
-  },
-  {
-    id: '8',
-    name: 'Alex Turner',
-    handle: '@alexgaming',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Gaming & Esports',
-    platforms: ['Twitch', 'YouTube', 'Twitter'],
-    followers: '3.2M',
-    rating: 4.1,
-    reviewCount: 22,
-    topTags: ['Engaged Audience', 'Authentic', 'Niche Expert'],
-    location: 'U.S.',
-    engagementRate: 3.5,
-  },
-];
 //as noted above, don't need niches
 const niches = [
   'All Niches',
@@ -169,12 +20,16 @@ const niches = [
   'Home & Interior',
   'Gaming & Esports',
 ];
+
+//TODO: Add Location to Filters, as well as to the DB & TRPC Schema
 //likely need to add an unknown
-const locations = [
-  'All Locations',
-  'U.S.',
-  'Canada',
-];
+// const locations = [
+//   'All Locations',
+//   'U.S.',
+//   'Canada',
+// ];
+
+interface SearchInfluencersProps {};
 
 export function SearchInfluencers({}: SearchInfluencersProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -192,7 +47,7 @@ export function SearchInfluencers({}: SearchInfluencersProps) {
     search: searchQuery || undefined,
     niche: selectedNiche && selectedNiche !== 'All Niches' ? selectedNiche : undefined,
     minRating: minRating > 0 ? minRating : undefined,
-    verified: verifiedOnly || undefined,
+    verified: verifiedOnly ? true : undefined,
   });
 
   const influencers = data?.influencers || [];
@@ -331,7 +186,7 @@ export function SearchInfluencers({}: SearchInfluencersProps) {
                 >
                   <div className="flex items-start gap-4 mb-4">
                     <ImageWithFallback
-                      src={influencer.profileImageUrl}
+                      src={influencer.profileImageUrl ?? undefined}
                       alt={influencer.name}
                       className="w-16 h-16 rounded-full object-cover flex-shrink-0"
                     />
