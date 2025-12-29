@@ -4,10 +4,38 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Star } from 'lucide-react';
 
-export function ReviewForm() {
+interface ReviewFormProps {
+  mode?: 'create' | 'edit';
+  reviewId?: string;
+  influencerId?: string;
+  influencerName?: string;
+  initialValues?: {
+    professionalism: number;
+    communication: number;
+    contentQuality: number;
+    roi: number;
+    reliability: number;
+    pros: string;
+    cons: string;
+    advice: string;
+    wouldWorkAgain: boolean;
+  };
+  onCancel?: () => void;
+  onSuccess?: () => void;
+}
+
+export function ReviewForm({ 
+  mode = 'create',
+  reviewId,
+  influencerId: influencerIdProp,
+  influencerName: influencerNameProp,
+  initialValues,
+  onCancel,
+  onSuccess
+}: ReviewFormProps = {}) {
   const router = useRouter();
   const params = useParams();
-  const influencerId = params.id as string;
+  const influencerId = influencerIdProp || (params.id as string);
 
   const [influencerName, setInfluencerName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -17,49 +45,61 @@ export function ReviewForm() {
   const [existingReviewDate, setExistingReviewDate] = useState<string | null>(null);
 
   const [ratings, setRatings] = useState({
-    professionalism: 0,
-    communication: 0,
-    contentQuality: 0,
-    roi: 0,
-    reliability: 0,
+    professionalism: initialValues?.professionalism || 0,
+    communication: initialValues?.communication || 0,
+    contentQuality: initialValues?.contentQuality || 0,
+    roi: initialValues?.roi || 0,
+    reliability: initialValues?.reliability || 0,
   });
-  const [pros, setPros] = useState('');
-  const [cons, setCons] = useState('');
-  const [advice, setAdvice] = useState('');
-  const [wouldWorkAgain, setWouldWorkAgain] = useState<boolean | null>(null);
+  const [pros, setPros] = useState(initialValues?.pros || '');
+  const [cons, setCons] = useState(initialValues?.cons || '');
+  const [advice, setAdvice] = useState(initialValues?.advice || '');
+  const [wouldWorkAgain, setWouldWorkAgain] = useState<boolean | null>(
+    initialValues?.wouldWorkAgain !== undefined ? initialValues.wouldWorkAgain : null
+  );
 
   useEffect(() => {
-    const fetchInfluencerAndCheckReview = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch influencer details
-        const influencerResponse = await fetch(`/api/influencers/${influencerId}`);
-        if (!influencerResponse.ok) {
-          setError('Failed to load influencer');
-          return;
-        }
-        const influencerData = await influencerResponse.json();
-        setInfluencerName(influencerData.name);
+    // If influencer name is provided (edit mode), skip fetching
+    if (influencerNameProp) {
+      setInfluencerName(influencerNameProp);
+      setLoading(false);
+      return;
+    }
 
-        // Check if user has already reviewed this influencer
-        const reviewCheckResponse = await fetch(`/api/reviews/check/${influencerId}`);
-        if (reviewCheckResponse.ok) {
-          const reviewCheckData = await reviewCheckResponse.json();
-          if (reviewCheckData.hasReviewed) {
-            setHasReviewed(true);
-            setExistingReviewDate(reviewCheckData.existingReview.createdAt);
+    // Only fetch in create mode
+    if (mode === 'create' && influencerId) {
+      const fetchInfluencerAndCheckReview = async () => {
+        try {
+          setLoading(true);
+          
+          // Fetch influencer details
+          const influencerResponse = await fetch(`/api/influencers/${influencerId}`);
+          if (!influencerResponse.ok) {
+            setError('Failed to load influencer');
+            return;
           }
-        }
-      } catch (err) {
-        setError('An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+          const influencerData = await influencerResponse.json();
+          setInfluencerName(influencerData.name);
 
-    fetchInfluencerAndCheckReview();
-  }, [influencerId]);
+          // Check if user has already reviewed this influencer
+          const reviewCheckResponse = await fetch(`/api/reviews/check/${influencerId}`);
+          if (reviewCheckResponse.ok) {
+            const reviewCheckData = await reviewCheckResponse.json();
+            if (reviewCheckData.hasReviewed) {
+              setHasReviewed(true);
+              setExistingReviewDate(reviewCheckData.existingReview.createdAt);
+            }
+          }
+        } catch (err) {
+          setError('An error occurred');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchInfluencerAndCheckReview();
+    }
+  }, [influencerId, influencerNameProp, mode]);
 
   const handleRatingChange = (category: string, value: number) => {
     setRatings({ ...ratings, [category]: value });
@@ -71,38 +111,78 @@ export function ReviewForm() {
     setError(null);
 
     try {
-      // TODO: Create API endpoint for submitting reviews
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          influencerId,
-          overallRating,
-          professionalismRating: ratings.professionalism,
-          communicationRating: ratings.communication,
-          contentQualityRating: ratings.contentQuality,
-          roiRating: ratings.roi,
-          reliabilityRating: ratings.reliability,
-          pros,
-          cons,
-          advice,
-          wouldWorkAgain,
-        }),
-      });
+      if (mode === 'edit' && reviewId) {
+        // Update existing review
+        const response = await fetch(`/api/reviews/${reviewId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            overallRating,
+            professionalismRating: ratings.professionalism,
+            communicationRating: ratings.communication,
+            contentQualityRating: ratings.contentQuality,
+            roiRating: ratings.roi,
+            reliabilityRating: ratings.reliability,
+            pros,
+            cons,
+            advice,
+            wouldWorkAgain,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to submit review');
+        if (!response.ok) {
+          throw new Error('Failed to update review');
+        }
+
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push(`/review/${reviewId}`);
+        }
+      } else {
+        // Create new review
+        const response = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            influencerId,
+            overallRating,
+            professionalismRating: ratings.professionalism,
+            communicationRating: ratings.communication,
+            contentQualityRating: ratings.contentQuality,
+            roiRating: ratings.roi,
+            reliabilityRating: ratings.reliability,
+            pros,
+            cons,
+            advice,
+            wouldWorkAgain,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to submit review');
+        }
+
+        // Redirect back to influencer profile
+        router.push(`/influencer/${influencerId}`);
       }
-
-      // Redirect back to influencer profile
-      router.push(`/influencer/${influencerId}`);
     } catch (err) {
-      console.error('Error submitting review:', err);
-      setError('Failed to submit review. Please try again.');
+      console.error(`Error ${mode === 'edit' ? 'updating' : 'submitting'} review:`, err);
+      setError(`Failed to ${mode === 'edit' ? 'update' : 'submit'} review. Please try again.`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.back();
     }
   };
 
@@ -141,23 +221,29 @@ export function ReviewForm() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
+        {/* Back Button - only show if no custom onCancel */}
+        {!onCancel && (
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <h1 className="text-3xl mb-2">Review {influencerName}</h1>
+          <h1 className="text-3xl mb-2">
+            {mode === 'edit' ? 'Edit Review' : `Review ${influencerName}`}
+          </h1>
           <p className="text-gray-600 mb-8">
-            Share your experience working with this influencer to help other brands make informed
-            decisions.
+            {mode === 'edit' 
+              ? 'Update your review to reflect your experience.'
+              : 'Share your experience working with this influencer to help other brands make informed decisions.'
+            }
           </p>
 
-          {hasReviewed && (
+          {hasReviewed && mode === 'create' && (
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
@@ -319,17 +405,24 @@ export function ReviewForm() {
             <div className="flex gap-3 pt-4">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={handleCancel}
                 className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={!isFormValid || submitting || hasReviewed}
+                disabled={!isFormValid || submitting || (hasReviewed && mode === 'create')}
                 className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                {submitting ? 'Submitting...' : hasReviewed ? 'Already Reviewed' : 'Submit Review'}
+                {submitting 
+                  ? (mode === 'edit' ? 'Saving...' : 'Submitting...') 
+                  : hasReviewed && mode === 'create'
+                    ? 'Already Reviewed'
+                    : mode === 'edit'
+                      ? 'Save Changes'
+                      : 'Submit Review'
+                }
               </button>
             </div>
           </form>
