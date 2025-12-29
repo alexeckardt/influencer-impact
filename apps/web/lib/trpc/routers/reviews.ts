@@ -22,6 +22,14 @@ export const reviewsRouter = router({
       message: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Debug: Log context user info
+      console.log('Review create - ctx.user:', ctx.user ? { id: ctx.user.id, email: ctx.user.email } : 'undefined');
+      console.log('Review create - input.influencerId:', input.influencerId);
+
+      if (!ctx.user || !ctx.user.id) {
+        throw new Error('User not authenticated - cannot create review');
+      }
+
       // Verify influencer exists
       const { data: influencer, error: influencerError } = await ctx.supabase
         .from('influencers')
@@ -54,6 +62,8 @@ export const reviewsRouter = router({
         input.reliabilityRating
       ) / 5;
 
+      console.log('Review create - About to insert review with reviewer_id:', ctx.user.id);
+
       // Create the review
       const { data: review, error: reviewError } = await ctx.supabase
         .from('reviews')
@@ -78,6 +88,8 @@ export const reviewsRouter = router({
         console.error('Review creation error:', reviewError);
         throw new Error('Failed to create review');
       }
+
+      console.log('Review created successfully with id:', review.id);
 
       return {
         success: true,
