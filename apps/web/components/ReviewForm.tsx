@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Star } from 'lucide-react';
+import { trpc } from '@/lib/trpc/client';
 
 interface ReviewFormProps {
   mode?: 'create' | 'edit';
@@ -58,6 +59,18 @@ export function ReviewForm({
     initialValues?.wouldWorkAgain !== undefined ? initialValues.wouldWorkAgain : null
   );
 
+  // Fetch influencer data using tRPC
+  const { data: influencerData, error: influencerError } = trpc.influencers.getById.useQuery(
+    { id: influencerId! },
+    { enabled: !!influencerId && !influencerNameProp && mode === 'create' }
+  );
+
+  // Check if user has already reviewed this influencer using tRPC
+  const { data: reviewCheck } = trpc.reviews.checkUserReview.useQuery(
+    { influencerId: influencerId! },
+    { enabled: !!influencerId && mode === 'create' }
+  );
+
   useEffect(() => {
     // If influencer name is provided (edit mode), skip fetching
     if (influencerNameProp) {
@@ -66,44 +79,53 @@ export function ReviewForm({
       return;
     }
 
-    // Only fetch in create mode
-    if (mode === 'create' && influencerId) {
-      const fetchInfluencerAndCheckReview = async () => {
-        try {
-          setLoading(true);
-          
-          // Fetch influencer details
-          const influencerResponse = await fetch(`/api/influencers/${influencerId}`);
-          if (!influencerResponse.ok) {
-            setError('Failed to load influencer');
-            return;
-          }
-          const influencerData = await influencerResponse.json();
-          setInfluencerName(influencerData.name);
-
-          // Check if user has already reviewed this influencer
-          const reviewCheckResponse = await fetch(`/api/reviews/check/${influencerId}`);
-          if (reviewCheckResponse.ok) {
-            const reviewCheckData = await reviewCheckResponse.json();
-            if (reviewCheckData.hasReviewed) {
-              setHasReviewed(true);
-              setExistingReviewDate(reviewCheckData.existingReview.createdAt);
-            }
-          }
-        } catch (err) {
-          setError('An error occurred');
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchInfluencerAndCheckReview();
+    // Update from tRPC query results
+    if (influencerData) {
+      setInfluencerName(influencerData.name);
+      setLoading(false);
     }
-  }, [influencerId, influencerNameProp, mode]);
+
+    if (influencerError) {
+      setError('Failed to load influencer');
+      setLoading(false);
+    }
+
+    if (reviewCheck?.hasReviewed) {
+      setHasReviewed(true);
+      setExistingReviewDate(new Date().toISOString());
+    }
+  }, [influencerData, influencerError, reviewCheck, influencerNameProp]);
 
   const handleRatingChange = (category: string, value: number) => {
     setRatings({ ...ratings, [category]: value });
   };
+
+  // tRPC mutations for create and update
+  const createReviewMutation = trpc.reviews.create.useMutation({
+    onSuccess: () => {
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(`/influencer/${influencerId}`);
+      }
+    },
+    onError: (err) => {
+      setError(err.message || 'Failed to submit review. Please try again.');
+    },
+  });
+
+  const updateReviewMutation = trpc.reviews.update.useMutation({
+    onSuccess: () => {
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(`/review/${reviewId}`);
+      }
+    },
+    onError: (err) => {
+      setError(err.message || 'Failed to update review. Please try again.');
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,66 +135,36 @@ export function ReviewForm({
     try {
       if (mode === 'edit' && reviewId) {
         // Update existing review
-        const response = await fetch(`/api/reviews/${reviewId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            overallRating,
-            professionalismRating: ratings.professionalism,
-            communicationRating: ratings.communication,
-            contentQualityRating: ratings.contentQuality,
-            roiRating: ratings.roi,
-            reliabilityRating: ratings.reliability,
-            pros,
-            cons,
-            advice,
-            wouldWorkAgain,
-          }),
+        await updateReviewMutation.mutateAsync({
+          reviewId,
+          overallRating,
+          professionalismRating: ratings.professionalism,
+          communicationRating: ratings.communication,
+          contentQualityRating: ratings.contentQuality,
+          roiRating: ratings.roi,
+          reliabilityRating: ratings.reliability,
+          pros,
+          cons,
+          advice,
+          wouldWorkAgain: wouldWorkAgain!,
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to update review');
-        }
-
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          router.push(`/review/${reviewId}`);
-        }
       } else {
         // Create new review
-        const response = await fetch('/api/reviews', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            influencerId,
-            overallRating,
-            professionalismRating: ratings.professionalism,
-            communicationRating: ratings.communication,
-            contentQualityRating: ratings.contentQuality,
-            roiRating: ratings.roi,
-            reliabilityRating: ratings.reliability,
-            pros,
-            cons,
-            advice,
-            wouldWorkAgain,
-          }),
+        await createReviewMutation.mutateAsync({
+          influencerId: influencerId!,
+          professionalismRating: ratings.professionalism,
+          communicationRating: ratings.communication,
+          contentQualityRating: ratings.contentQuality,
+          roiRating: ratings.roi,
+          reliabilityRating: ratings.reliability,
+          pros,
+          cons,
+          advice,
+          wouldWorkAgain: wouldWorkAgain!,
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to submit review');
-        }
-
-        // Redirect back to influencer profile
-        router.push(`/influencer/${influencerId}`);
       }
     } catch (err) {
-      console.error(`Error ${mode === 'edit' ? 'updating' : 'submitting'} review:`, err);
-      setError(`Failed to ${mode === 'edit' ? 'update' : 'submit'} review. Please try again.`);
+      // Error handling is done in mutation callbacks
     } finally {
       setSubmitting(false);
     }

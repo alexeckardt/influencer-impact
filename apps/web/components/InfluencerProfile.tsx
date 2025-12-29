@@ -4,191 +4,11 @@ import { useState, useEffect } from 'react';
 import { Star, ArrowLeft, LogOut, Instagram, Youtube, Twitter, TrendingUp, MessageSquare, DollarSign, Clock, ThumbsUp, ExternalLink } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
+import { trpc } from '@/lib/trpc/client';
 
 interface InfluencerProfileProps {
   influencerId: string | null;
 }
-
-interface Platform {
-  platform: string;
-  username: string;
-  url: string;
-  followerCount: number;
-}
-
-interface Reviewer {
-  firstName: string;
-  lastName: string;
-  companyName: string;
-  jobTitle: string;
-  yearsInPR: string;
-}
-
-interface Review {
-  id: string;
-  overallRating: number;
-  professionalism: number;
-  communication: number;
-  contentQuality: number;
-  roi: number;
-  reliability: number;
-  pros: string;
-  cons: string;
-  advice: string;
-  wouldWorkAgain: boolean;
-  createdAt: string;
-  reviewer: Reviewer | null;
-}
-
-interface Influencer {
-  id: string;
-  name: string;
-  email: string;
-  bio: string;
-  niche: string;
-  location: string;
-  profileImageUrl: string;
-  verified: boolean;
-  platforms: Platform[];
-  ratings: {
-    overall: number;
-    professionalism: number;
-    communication: number;
-    contentQuality: number;
-    roi: number;
-    reliability: number;
-  };
-  totalReviews: number;
-  engagementRate: number;
-  reviews: Review[];
-}
-
-// Mock data
-const influencersData: { [key: string]: any } = {
-  '1': {
-    id: '1',
-    name: 'Sarah Johnson',
-    handle: '@sarahjohnson',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Fashion & Lifestyle',
-    platforms: [
-      { name: 'Instagram', icon: Instagram, followers: '850K', url: 'https://instagram.com/sarahjohnson' },
-      { name: 'TikTok', icon: TrendingUp, followers: '1.2M', url: 'https://tiktok.com/@sarahjohnson' },
-      { name: 'YouTube', icon: Youtube, followers: '320K', url: 'https://youtube.com/@sarahjohnson' },
-      { name: 'Facebook', icon: MessageSquare, followers: '420K', url: 'https://facebook.com/sarahjohnson' },
-    ],
-    overallRating: 4.6,
-    totalReviews: 24,
-    location: 'U.S.',
-    engagementRate: 4.2,
-    ratings: {
-      professionalism: 4.8,
-      communication: 4.7,
-      contentQuality: 4.9,
-      roi: 4.3,
-      reliability: 4.5,
-    },
-    reviews: [
-      {
-        id: 1,
-        //Think we just include the type of company, which will generally just be PR Agency and years in PR instead of job titles so it's not as obvious who has left what review
-        // We'll also need to add a button on reviews to flag reviews that are against policy (things that could be considered bullying, whatever else we talk about w/ lawyers)
-        // Maybe with the flag button we have one of those hover-able question mark buttons that link out to content policy & what's acceptable
-        reviewer: 'Senior PR Manager',
-        company: 'Tech startup',
-        yearsInPR: '6-10 years',
-        date: '2024-12-10',
-        overallRating: 5,
-        professionalism: 5,
-        communication: 5,
-        contentQuality: 5,
-        roi: 4,
-        reliability: 5,
-        pros: 'Extremely professional, delivered content ahead of schedule, great engagement rates, very collaborative',
-        cons: 'Premium pricing, but worth it for the quality',
-        advice: 'Give her creative freedom - she knows her audience best',
-        wouldWorkAgain: true,
-      },
-      {
-        id: 2,
-        reviewer: 'PR Coordinator',
-        company: 'Fashion brand',
-        yearsInPR: '3-5 years',
-        date: '2024-11-28',
-        overallRating: 4,
-        professionalism: 4,
-        communication: 4,
-        contentQuality: 5,
-        roi: 4,
-        reliability: 4,
-        pros: 'Beautiful content, strong brand alignment, engaged audience',
-        cons: 'Can be slow to respond during busy periods',
-        advice: 'Book well in advance, her calendar fills up quickly',
-        wouldWorkAgain: true,
-      },
-      {
-        id: 3,
-        reviewer: 'Account Director',
-        company: 'PR agency',
-        yearsInPR: '10+ years',
-        date: '2024-11-15',
-        overallRating: 5,
-        professionalism: 5,
-        communication: 5,
-        contentQuality: 5,
-        roi: 5,
-        reliability: 5,
-        pros: 'One of the best influencers we\'ve worked with. Professional, reliable, great results',
-        cons: 'None - genuinely impressed',
-        advice: 'Invest in a long-term partnership',
-        wouldWorkAgain: true,
-      },
-    ],
-  },
-  '2': {
-    id: '2',
-    name: 'Marcus Chen',
-    handle: '@marcustech',
-    image: 'https://images.unsplash.com/photo-1520333789090-1afc82db536a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjBtZWRpYSUyMGluZmx1ZW5jZXJ8ZW58MXx8fHwxNzY1NjMzOTk2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    niche: 'Technology & Gadgets',
-    platforms: [
-      { name: 'YouTube', icon: Youtube, followers: '2.1M', url: 'https://youtube.com/@marcustech' },
-      { name: 'Twitter', icon: Twitter, followers: '450K', url: 'https://twitter.com/marcustech' },
-      { name: 'Instagram', icon: Instagram, followers: '620K', url: 'https://instagram.com/marcustech' },
-      { name: 'Facebook', icon: MessageSquare, followers: '180K', url: 'https://facebook.com/marcustech' },
-    ],
-    overallRating: 4.2,
-    totalReviews: 18,
-    location: 'Canada',
-    engagementRate: 3.8,
-    ratings: {
-      professionalism: 4.5,
-      communication: 3.8,
-      contentQuality: 4.7,
-      roi: 4.0,
-      reliability: 4.1,
-    },
-    reviews: [
-      {
-        id: 1,
-        reviewer: 'Brand Manager',
-        company: 'Electronics company',
-        yearsInPR: '3-5 years',
-        date: '2024-12-05',
-        overallRating: 4,
-        professionalism: 5,
-        communication: 3,
-        contentQuality: 5,
-        roi: 4,
-        reliability: 4,
-        pros: 'Excellent technical knowledge, thorough reviews, good reach',
-        cons: 'Communication could be faster, sometimes takes days to respond',
-        advice: 'Be patient with response times but the final product is worth it',
-        wouldWorkAgain: true,
-      },
-    ],
-  },
-};
 
 // Helper to get platform icon
 const getPlatformIcon = (platform: string) => {
@@ -213,48 +33,30 @@ const formatFollowerCount = (count: number): string => {
 };
 
 export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
-  const [influencer, setInfluencer] = useState<Influencer | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const router = useRouter();
 
+  // Use tRPC query for influencer data
+  const { data: influencer, isLoading, error: queryError } = trpc.influencers.getById.useQuery(
+    { id: influencerId! },
+    { enabled: !!influencerId },
+  );
+
   useEffect(() => {
-    if (!influencerId) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchInfluencer = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/influencers/${influencerId}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Influencer not found');
-          } else if (response.status === 401) {
-            setError('Please log in to view this profile');
-          } else {
-            setError('Failed to load influencer profile');
-          }
-          return;
-        }
-
-        const data = await response.json();
-        setInfluencer(data);
-      } catch (err) {
-        console.error('Error fetching influencer:', err);
-        setError('An error occurred while loading the profile');
-      } finally {
-        setLoading(false);
+    if (queryError) {
+      if (queryError.message.includes('not found')) {
+        setError('Influencer not found');
+      } else if (queryError.message.includes('Unauthorized')) {
+        setError('Please log in to view this profile');
+      } else {
+        setError('Failed to load influencer profile');
       }
-    };
+    } else {
+      setError(null);
+    }
+  }, [queryError]);
 
-    fetchInfluencer();
-  }, [influencerId]);
+  const loading = isLoading;
 
   const onBack = () => {
     router.back();
@@ -308,7 +110,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-shrink-0">
               <ImageWithFallback
-                src={influencer.profileImageUrl}
+                src={influencer.profileImageUrl || undefined}
                 alt={influencer.name}
                 className="w-32 h-32 rounded-full object-cover"
               />
@@ -330,7 +132,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
                   {influencer.niche}
                 </span>
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                  {influencer.location}
+                  {influencer.location || 'Location Unknown'}
                 </span>
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
                   {influencer.engagementRate.toFixed(1)}% engagement

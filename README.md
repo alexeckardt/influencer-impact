@@ -1,8 +1,19 @@
 # Influencer Review Platform
 
-A **closed, authenticated monorepo** for a scalable influencer review platform. Built for small teams with production-ready infrastructure.
+A **closed, authenticated monorepo** for a scalable influencer review platform with **end-to-end type safety** using tRPC.
 
-**Tech Stack**: Next.js • TypeScript • Supabase • Meilisearch • Turborepo • pnpm
+**Tech Stack**: Next.js • TypeScript • tRPC • Supabase • Meilisearch • Turborepo • pnpm
+
+---
+
+## 🎯 Key Features
+
+- **🔒 End-to-End Type Safety** - tRPC ensures compile-time type checking from database to UI
+- **✅ Runtime Validation** - Zod schemas validate all API inputs/outputs
+- **🚀 Developer Experience** - Full autocomplete, instant error detection, automatic API documentation
+- **📊 Admin Dashboard** - Manage user applications and review reports
+- **🔍 Search** - Meilisearch-powered influencer search
+- **🔐 Authentication** - Supabase Auth with Row Level Security
 
 ---
 
@@ -78,11 +89,42 @@ pnpm dev
 ### Commands
 
 ```bash
+pnpm dev            # Run all apps in dev mode
 pnpm lint           # ESLint across all apps
 pnpm typecheck      # TypeScript type checking
 pnpm build          # Build all apps
 pnpm clean          # Remove all build artifacts
 pnpm format         # Format code with Prettier
+```
+
+### Working with tRPC APIs
+
+See comprehensive guides:
+- **[TRPC_GUIDE.md](./TRPC_GUIDE.md)** - Complete implementation guide
+- **[TRPC_API_REFERENCE.md](./TRPC_API_REFERENCE.md)** - API quick reference
+- **[TRPC_COMPARISON.md](./TRPC_COMPARISON.md)** - Before/after examples
+- **[TRPC_MIGRATION_CHECKLIST.md](./TRPC_MIGRATION_CHECKLIST.md)** - Migration roadmap
+
+**Quick example:**
+```typescript
+// In your component
+import { trpc } from '@/lib/trpc/client';
+
+export function MyComponent() {
+  // ✅ Fully typed query with autocomplete
+  const { data, isLoading } = trpc.reviews.getById.useQuery({
+    reviewId: 'uuid',
+  });
+
+  // ✅ Fully typed mutation
+  const createReview = trpc.reviews.create.useMutation({
+    onSuccess: (data) => {
+      console.log('Created:', data.reviewId);
+    },
+  });
+
+  return <div>{/* Use data with full type safety */}</div>;
+}
 ```
 
 ---

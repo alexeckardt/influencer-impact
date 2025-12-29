@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
+import { TRPCProvider } from '@/lib/trpc/provider';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <body className="font-sans">
-        <AuthProvider>{children}</AuthProvider>
+        <TRPCProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </TRPCProvider>
       </body>
     </html>
   );

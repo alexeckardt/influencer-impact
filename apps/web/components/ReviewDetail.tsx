@@ -1,118 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Star, Edit2, ExternalLink, Flag } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReportReviewModal } from '@/components/ReportReviewModal';
-
-interface Influencer {
-  id: string;
-  name: string;
-  profileImageUrl: string;
-  niche: string;
-  verified: boolean;
-}
-
-interface Reviewer {
-  firstName: string;
-  lastName: string;
-  companyName: string;
-  jobTitle: string;
-  yearsInPR: string;
-}
-
-interface Review {
-  id: string;
-  overallRating: number;
-  professionalism: number;
-  communication: number;
-  contentQuality: number;
-  roi: number;
-  reliability: number;
-  pros: string;
-  cons: string;
-  advice: string;
-  wouldWorkAgain: boolean;
-  createdAt: string;
-  updatedAt: string;
-  isAuthor: boolean;
-  influencer: Influencer | null;
-  reviewer: Reviewer | null;
-}
+import { trpc } from '@/lib/trpc/client';
+import { useAuth } from '@/lib/auth-context';
 
 export function ReviewDetail() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
 
-  const [review, setReview] = useState<Review | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [hasReported, setHasReported] = useState(false);
-  const [checkingReportStatus, setCheckingReportStatus] = useState(true);
+
+  // Fetch review using tRPC
+  const { data: review, isLoading: loading, error: queryError, refetch } = trpc.reviews.getById.useQuery(
+    { reviewId: id },
+    { enabled: !!id }
+  );
+
+  // Check report status using tRPC
+  const { data: reportStatus, isLoading: checkingReportStatus } = trpc.reviewReports.checkReportStatus.useQuery(
+    { reviewId: id },
+    { enabled: !!id }
+  );
+
+  const hasReported = reportStatus?.hasReported || false;
+  const error = queryError?.message || null;
+
+  // Check
+  const { user } = useAuth();
+  const userId = user?.id || null;
+  const isAuthor = review?.reviewer_id === userId;
 
   console.log("Review Object:", review);
 
-  useEffect(() => {
-    const fetchReview = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/reviews/${id}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Review not found');
-          } else if (response.status === 401) {
-            setError('Please log in to view this review');
-          } else {
-            setError('Failed to load review');
-          }
-          return;
-        }
-
-        const data = await response.json();
-        setReview(data);
-      } catch (err) {
-        console.error('Error fetching review:', err);
-        setError('An error occurred while loading the review');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReview();
-  }, [id]);
-
-  useEffect(() => {
-    const checkReportStatus = async () => {
-      try {
-        setCheckingReportStatus(true);
-        const response = await fetch(`/api/reviews/${id}/report`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setHasReported(data.hasReported);
-        }
-      } catch (err) {
-        console.error('Error checking report status:', err);
-      } finally {
-        setCheckingReportStatus(false);
-      }
-    };
-
-    checkReportStatus();
-  }, [id]);
-
   const handleEditSuccess = async () => {
-    // Refresh the review data
-    const updatedData = await fetch(`/api/reviews/${id}`).then(r => r.json());
-    setReview(updatedData);
+    // Refresh the review data using tRPC refetch
+    await refetch();
     setIsEditing(false);
   };
 
@@ -152,15 +81,15 @@ export function ReviewDetail() {
         influencerId={review.influencer?.id}
         influencerName={review.influencer?.name}
         initialValues={{
-          professionalism: review.professionalism,
-          communication: review.communication,
-          contentQuality: review.contentQuality,
-          roi: review.roi,
-          reliability: review.reliability,
-          pros: review.pros,
-          cons: review.cons,
-          advice: review.advice,
-          wouldWorkAgain: review.wouldWorkAgain,
+          professionalism: review.professionalism_rating,
+          communication: review.communication_rating,
+          contentQuality: review.content_quality_rating,
+          roi: review.roi_rating,
+          reliability: review.reliability_rating,
+          pros: review.pros || '',
+          cons: review.cons || '',
+          advice: review.advice || '',
+          wouldWorkAgain: review.would_work_again,
         }}
         onCancel={() => setIsEditing(false)}
         onSuccess={handleEditSuccess}
@@ -185,7 +114,7 @@ export function ReviewDetail() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center gap-4">
               <ImageWithFallback
-                src={review.influencer.profileImageUrl}
+                src={review.influencer.profile_image_url || '/default-profile.png'}
                 alt={review.influencer.name}
                 className="w-16 h-16 rounded-full object-cover flex-shrink-0"
               />
@@ -198,7 +127,7 @@ export function ReviewDetail() {
                     </svg>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mb-2">{review.influencer.niche}</p>
+                <p className="text-sm text-gray-600 mb-2">{review.influencer.primary_niche}</p>
                 <button
                   onClick={() => router.push(`/influencer/${review.influencer!.id}`)}
                   className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
@@ -218,10 +147,10 @@ export function ReviewDetail() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold">{review.overallRating.toFixed(1)}</span>
+                  <span className="text-3xl font-bold">{review.overall_rating.toFixed(1)}</span>
                   <Star className="w-7 h-7 text-yellow-400" fill="currentColor" />
                 </div>
-                {review.wouldWorkAgain && (
+                {review.would_work_again && (
                   <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                     Would work again
                   </span>
@@ -229,25 +158,25 @@ export function ReviewDetail() {
               </div>
               {review.reviewer ? (
                 <p className="text-gray-600">
-                  Review by {review.reviewer.firstName} {review.reviewer.lastName}
-                  {review.reviewer.jobTitle && review.reviewer.companyName && (
-                    <span> • {review.reviewer.jobTitle} at {review.reviewer.companyName}</span>
+                  Review by {review.reviewer.first_name} {review.reviewer.last_name}
+                  {review.reviewer.job_title && review.reviewer.company && (
+                    <span> • {review.reviewer.job_title} @ {review.reviewer.company}</span>
                   )}
                 </p>
               ) : (
                 <p className="text-gray-600">Anonymous Review</p>
               )}
               <p className="text-sm text-gray-500 mt-1">
-                {new Date(review.createdAt).toLocaleDateString('en-US', { 
+                {new Date(review.created_at).toLocaleDateString('en-US', { 
                   month: 'long', 
                   day: 'numeric', 
                   year: 'numeric' 
                 })}
-                {review.updatedAt !== review.createdAt && ' (edited)'}
+                {review.updated_at !== review.created_at && ' (edited)'}
               </p>
             </div>
             <div className="flex gap-2">
-              {!review.isAuthor && (
+              {!isAuthor && (
                 <button
                   onClick={() => setIsReportModalOpen(true)}
                   disabled={hasReported || checkingReportStatus}
@@ -258,7 +187,7 @@ export function ReviewDetail() {
                   {hasReported ? 'Reported' : 'Report'}
                 </button>
               )}
-              {review.isAuthor && (
+              {isAuthor && (
                 <button
                   onClick={() => setIsEditing(true)}
                   className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -277,35 +206,35 @@ export function ReviewDetail() {
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Professionalism</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-semibold">{review.professionalism.toFixed(1)}</span>
+                  <span className="text-xl font-semibold">{review.professionalism_rating.toFixed(1)}</span>
                   <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
                 </div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Communication</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-semibold">{review.communication.toFixed(1)}</span>
+                  <span className="text-xl font-semibold">{review.communication_rating.toFixed(1)}</span>
                   <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
                 </div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Content Quality</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-semibold">{review.contentQuality.toFixed(1)}</span>
+                  <span className="text-xl font-semibold">{review.content_quality_rating.toFixed(1)}</span>
                   <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
                 </div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">ROI</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-semibold">{review.roi.toFixed(1)}</span>
+                  <span className="text-xl font-semibold">{review.roi_rating.toFixed(1)}</span>
                   <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
                 </div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Reliability</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-semibold">{review.reliability.toFixed(1)}</span>
+                  <span className="text-xl font-semibold">{review.reliability_rating.toFixed(1)}</span>
                   <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
                 </div>
               </div>
@@ -338,7 +267,8 @@ export function ReviewDetail() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         onSuccess={() => {
-          setHasReported(true);
+          // Refetch report status after successful submission
+          refetch();
           // Optional: show success message
           alert('Report submitted successfully. Thank you for helping us maintain quality!');
         }}

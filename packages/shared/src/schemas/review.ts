@@ -35,3 +35,42 @@ export const CreateReviewSchema = ReviewSchema.omit({
 });
 
 export type CreateReview = z.infer<typeof CreateReviewSchema>;
+
+/**
+ * Review Detail Response Schema
+ * Used when fetching a single review with nested influencer and reviewer data
+ */
+export const ReviewDetailResponseSchema = z.object({
+  id: z.string().uuid(),
+  influencer_id: z.string().uuid(),
+  reviewer_id: z.string().uuid(),
+  overall_rating: z.number(),
+  professionalism_rating: z.number(),
+  communication_rating: z.number(),
+  content_quality_rating: z.number(),
+  roi_rating: z.number(),
+  reliability_rating: z.number(),
+  pros: z.string().nullable(),
+  cons: z.string().nullable(),
+  advice: z.string().nullable(),
+  would_work_again: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  influencer: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    primary_niche: z.string(),
+    profile_image_url: z.string().nullable(),
+    verified: z.boolean(),
+  }).nullable(),
+  reviewer: z.object({
+    id: z.string().uuid(),
+    first_name: z.string(),
+    last_name: z.string(),
+    company: z.string().nullable(),
+    job_title: z.string().nullable(),
+    public_profile: z.boolean(),
+  }).nullable(),
+});
+
+export type ReviewDetailResponse = z.infer<typeof ReviewDetailResponseSchema>;

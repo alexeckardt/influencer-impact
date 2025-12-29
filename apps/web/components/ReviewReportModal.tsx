@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Flag, User, Calendar, AlertCircle, ExternalLink } from 'lucide-react';
+import { trpc } from '@/lib/trpc/client';
 
 interface ReviewReport {
   id: string;
@@ -57,8 +58,18 @@ const REASON_LABELS: Record<string, string> = {
 
 export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: ReviewReportModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>(report?.status || 'open');
-  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // tRPC mutation for updating report status
+  const updateStatusMutation = trpc.reviewReports.updateReportStatus.useMutation({
+    onSuccess: () => {
+      onStatusChange?.();
+      onClose();
+    },
+    onError: (err) => {
+      setError(err.message || 'An error occurred');
+    },
+  });
 
   // Update selectedStatus when report changes
   useEffect(() => {
@@ -75,32 +86,12 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
       return;
     }
 
-    setIsUpdating(true);
     setError(null);
 
-    try {
-      const response = await fetch(`/api/admin/review-reports/${report.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: selectedStatus,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update report status');
-      }
-
-      onStatusChange?.();
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsUpdating(false);
-    }
+    await updateStatusMutation.mutateAsync({
+      reportId: report.id,
+      status: selectedStatus as 'open' | 'investigating' | 'closed',
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -126,7 +117,7 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
           </div>
           <button
             onClick={onClose}
-            disabled={isUpdating}
+            disabled={updateStatusMutation.isPending}
             className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
           >
             <X className="h-6 w-6" />
@@ -247,7 +238,7 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
                     value="open"
                     checked={selectedStatus === 'open'}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    disabled={isUpdating}
+                    disabled={updateStatusMutation.isPending}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700">Open</span>
@@ -259,7 +250,7 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
                     value="investigating"
                     checked={selectedStatus === 'investigating'}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    disabled={isUpdating}
+                    disabled={updateStatusMutation.isPending}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700">Investigating</span>
@@ -271,7 +262,7 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
                     value="closed"
                     checked={selectedStatus === 'closed'}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    disabled={isUpdating}
+                    disabled={updateStatusMutation.isPending}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700">Closed</span>
@@ -291,7 +282,7 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
           <button
             type="button"
             onClick={onClose}
-            disabled={isUpdating}
+            disabled={updateStatusMutation.isPending}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
@@ -299,10 +290,10 @@ export function ReviewReportModal({ report, isOpen, onClose, onStatusChange }: R
           <button
             type="button"
             onClick={handleStatusChange}
-            disabled={isUpdating || selectedStatus === report.status}
+            disabled={updateStatusMutation.isPending || selectedStatus === report.status}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {isUpdating ? (
+            {updateStatusMutation.isPending ? (
               <>
                 <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Updating...
