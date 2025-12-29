@@ -1,3 +1,4 @@
+'use client';
 import { Shield, Users, TrendingUp } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';

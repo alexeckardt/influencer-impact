@@ -1,3 +1,4 @@
+'use client';
 import { ChangeEvent, FormEvent, useState } from 'react';
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
