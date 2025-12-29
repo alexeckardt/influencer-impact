@@ -67,7 +67,8 @@ export async function GET(
           last_name,
           company,
           job_title,
-          years_experience
+          years_experience,
+          public_profile
         )
       `)
       .eq('influencer_id', influencerId)
@@ -139,7 +140,7 @@ export async function GET(
         advice: r.advice,
         wouldWorkAgain: r.would_work_again,
         createdAt: r.created_at,
-        reviewer: r.reviewer ? {
+        reviewer: r.reviewer && r.reviewer.public_profile ? {
           firstName: r.reviewer.first_name,
           lastName: r.reviewer.last_name,
           companyName: r.reviewer.company,

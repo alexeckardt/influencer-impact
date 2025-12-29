@@ -260,6 +260,10 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
     router.back();
   };
 
+  const startWriteReview = () => {
+    router.push(`/review/${influencerId}`);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -304,7 +308,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-shrink-0">
               <ImageWithFallback
-                src={influencer.image}
+                src={influencer.profileImageUrl}
                 alt={influencer.name}
                 className="w-32 h-32 rounded-full object-cover"
               />
@@ -367,7 +371,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
                   <p className="text-sm text-gray-600">{influencer.totalReviews} review{influencer.totalReviews !== 1 ? 's' : ''}</p>
                 </div>
                 <button
-                  onClick={() => router.push(`/review/${influencer.id}`)}
+                  onClick={startWriteReview}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Write a Review
@@ -414,7 +418,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
               <p className="text-sm text-gray-500 mb-7">Be the first to review {influencer.name}!</p>
 
               <button
-                  onClick={() => setShowReviewModal(true)}
+                  onClick={startWriteReview}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Write a Review

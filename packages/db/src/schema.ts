@@ -67,6 +67,8 @@ export const users = pgTable(
       .notNull(),
     isVerified: boolean('is_verified').default(false),
     isActive: boolean('is_active').default(true),
+    publicProfile: boolean('public_profile').default(true).notNull(),
+    hasTempPassword: boolean('has_temp_password').default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
