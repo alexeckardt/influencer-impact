@@ -9,7 +9,23 @@ import { Context } from './context';
 // Initialize tRPC with superjson transformer for handling Date, Map, Set, etc.
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  errorFormatter({ shape }) {
+  errorFormatter({ shape, error }) {
+    // Log validation errors to help debug schema mismatches
+    if (error.code === 'INTERNAL_SERVER_ERROR' && error.cause) {
+      console.error('tRPC Error:', {
+        code: error.code,
+        message: error.message,
+        cause: error.cause,
+        path: shape.data?.path,
+      });
+      
+      // If it's a Zod validation error, log the details
+      if (error.cause && typeof error.cause === 'object' && 'issues' in error.cause) {
+        console.error('Zod Validation Error - Schema mismatch detected:');
+        console.error(JSON.stringify(error.cause, null, 2));
+      }
+    }
+    
     return shape;
   },
 });

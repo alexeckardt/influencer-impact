@@ -43,13 +43,13 @@ const ReviewSchema = z.object({
   cons: z.string().nullable(),
   advice: z.string().nullable(),
   wouldWorkAgain: z.boolean(),
-  createdAt: z.string().datetime(),
+  createdAt: z.string(), 
   reviewer: z.object({
     firstName: z.string(),
     lastName: z.string(),
     companyName: z.string().nullable(),
     jobTitle: z.string().nullable(),
-    yearsInPR: z.number().nullable(),
+    yearsInPR: z.string().nullable(),
   }).nullable(),
 });
 
