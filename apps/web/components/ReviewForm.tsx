@@ -13,6 +13,8 @@ export function ReviewForm() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [existingReviewDate, setExistingReviewDate] = useState<string | null>(null);
 
   const [ratings, setRatings] = useState({
     professionalism: 0,
@@ -27,15 +29,28 @@ export function ReviewForm() {
   const [wouldWorkAgain, setWouldWorkAgain] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const fetchInfluencer = async () => {
+    const fetchInfluencerAndCheckReview = async () => {
       try {
-        const response = await fetch(`/api/influencers/${influencerId}`);
-        if (!response.ok) {
+        setLoading(true);
+        
+        // Fetch influencer details
+        const influencerResponse = await fetch(`/api/influencers/${influencerId}`);
+        if (!influencerResponse.ok) {
           setError('Failed to load influencer');
           return;
         }
-        const data = await response.json();
-        setInfluencerName(data.name);
+        const influencerData = await influencerResponse.json();
+        setInfluencerName(influencerData.name);
+
+        // Check if user has already reviewed this influencer
+        const reviewCheckResponse = await fetch(`/api/reviews/check/${influencerId}`);
+        if (reviewCheckResponse.ok) {
+          const reviewCheckData = await reviewCheckResponse.json();
+          if (reviewCheckData.hasReviewed) {
+            setHasReviewed(true);
+            setExistingReviewDate(reviewCheckData.existingReview.createdAt);
+          }
+        }
       } catch (err) {
         setError('An error occurred');
       } finally {
@@ -43,7 +58,7 @@ export function ReviewForm() {
       }
     };
 
-    fetchInfluencer();
+    fetchInfluencerAndCheckReview();
   }, [influencerId]);
 
   const handleRatingChange = (category: string, value: number) => {
@@ -141,6 +156,38 @@ export function ReviewForm() {
             Share your experience working with this influencer to help other brands make informed
             decisions.
           </p>
+
+          {hasReviewed && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-yellow-800 mb-1">
+                    You've Already Reviewed This Influencer
+                  </h3>
+                  <p className="text-sm text-yellow-700">
+                    You submitted a review for {influencerName} on{' '}
+                    {existingReviewDate && new Date(existingReviewDate).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}. 
+                    You can only submit one review per influencer.
+                  </p>
+                  <button
+                    onClick={() => router.push(`/influencer/${influencerId}`)}
+                    className="mt-2 text-sm text-yellow-800 underline hover:text-yellow-900"
+                  >
+                    View your review
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -279,10 +326,10 @@ export function ReviewForm() {
               </button>
               <button
                 type="submit"
-                disabled={!isFormValid || submitting}
+                disabled={!isFormValid || submitting || hasReviewed}
                 className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                {submitting ? 'Submitting...' : 'Submit Review'}
+                {submitting ? 'Submitting...' : hasReviewed ? 'Already Reviewed' : 'Submit Review'}
               </button>
             </div>
           </form>

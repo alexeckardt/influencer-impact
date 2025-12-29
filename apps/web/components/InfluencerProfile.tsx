@@ -261,7 +261,7 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
   };
 
   const startWriteReview = () => {
-    router.push(`/review/${influencerId}`);
+    router.push(`/influencer/${influencerId}/review`);
   }
 
   if (loading) {
