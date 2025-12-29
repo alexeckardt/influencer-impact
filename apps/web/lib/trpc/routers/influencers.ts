@@ -109,6 +109,7 @@ export const influencersRouter = router({
         id: influencer.id,
         name: influencer.name,
         bio: influencer.bio,
+        location: null, // Location not yet implemented in database
         niche: influencer.primary_niche,
         profileImageUrl: influencer.profile_image_url,
         verified: influencer.verified,
