@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   output: 'standalone',
+  // Disable Turbopack for production builds to ensure standalone output works
+  turbo: undefined,
   outputFileTracingIncludes: {
     '/': ['./node_modules/**/*'],
   },
