@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Star, ArrowLeft, LogOut, Instagram, Youtube, Twitter, TrendingUp, MessageSquare, DollarSign, Clock, ThumbsUp, ExternalLink } from 'lucide-react';
+import { useEffect } from 'react';
+import { Star, ArrowLeft, Instagram, Youtube, Twitter, TrendingUp, MessageSquare, ThumbsUp, ExternalLink } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc/client';
@@ -33,7 +33,6 @@ const formatFollowerCount = (count: number): string => {
 };
 
 export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   // Use tRPC query for influencer data
@@ -50,21 +49,17 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
     if (influencerId && !isLoading && influencer) {
       recordViewMutation.mutate({ influencerId });
     }
+  //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [influencerId, influencer]); // Only run when influencer data is loaded
 
-  useEffect(() => {
-    if (queryError) {
-      if (queryError.message.includes('not found')) {
-        setError('Influencer not found');
-      } else if (queryError.message.includes('Unauthorized')) {
-        setError('Please log in to view this profile');
-      } else {
-        setError('Failed to load influencer profile');
-      }
-    } else {
-      setError(null);
-    }
-  }, [queryError]);
+  // Derive error message from queryError instead of storing in state
+  const error = queryError
+    ? queryError.message.includes('not found')
+      ? 'Influencer not found'
+      : queryError.message.includes('Unauthorized')
+      ? 'Please log in to view this profile'
+      : 'Failed to load influencer profile'
+    : null;
 
   const loading = isLoading;
 

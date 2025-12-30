@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Star } from 'lucide-react';
 import { trpc } from '@/lib/trpc/client';
@@ -127,7 +127,7 @@ export function ReviewForm({
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
@@ -163,6 +163,7 @@ export function ReviewForm({
           wouldWorkAgain: wouldWorkAgain!,
         });
       }
+    //eslint-disable-next-line
     } catch (err) {
       // Error handling is done in mutation callbacks
     } finally {

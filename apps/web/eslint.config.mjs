@@ -7,6 +7,7 @@ const config = [
   {
     rules: {
       'react-hooks/rules-of-hooks': 'error',
+      'react/no-unescaped-entities': 'off',
     },
   },
 ];

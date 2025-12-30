@@ -25,9 +25,11 @@ declare module 'nodemailer' {
     };
   }
 
+  // eslint-disable-next-line
   export function createTransport(options: TransportOptions): Transporter;
 
   export interface Transporter {
+    // eslint-disable-next-line
     sendMail(mailOptions: MailOptions): Promise<SentMessageInfo>;
   }
 

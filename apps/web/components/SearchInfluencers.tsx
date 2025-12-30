@@ -6,8 +6,6 @@ import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc/client';
 
-// On this page, would be cool to have "My Influencers" showing - idea here: https://docs.google.com/document/d/1hbp4jKx5jPMFJfIQzeSygFezd_c7GsXw62bF0n14gmw/edit?usp=sharing
-
 //as noted above, don't need niches
 const niches = [
   'All Niches',
@@ -29,9 +27,7 @@ const niches = [
 //   'Canada',
 // ];
 
-interface SearchInfluencersProps {};
-
-export function SearchInfluencers({}: SearchInfluencersProps) {
+export function SearchInfluencers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNiche, setSelectedNiche] = useState('All Niches');
   const [minRating, setMinRating] = useState(0);

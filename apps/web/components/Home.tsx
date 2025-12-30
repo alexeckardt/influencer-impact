@@ -1,11 +1,9 @@
-import { Star, Shield, Users, TrendingUp } from 'lucide-react';
+'use client';
+import { Shield, Users, TrendingUp } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 
-interface HomeProps {
-}
-
-export function Home({}: HomeProps) {
+export function Home() {
 
   const router = useRouter();
 

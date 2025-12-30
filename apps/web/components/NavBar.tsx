@@ -8,7 +8,7 @@ import { ProfileDropdown } from "./ProfileDropdown";
 
 export function NavBar() {
     const router = useRouter();
-    const { isLoggedIn, user } = useAuth();
+    const { isLoggedIn } = useAuth();
 
     return (
         <nav className="border-b border-gray-200 bg-white w-full">

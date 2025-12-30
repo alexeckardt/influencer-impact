@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { User, LogOut, ChevronDown, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import Image from 'next/image';
 
 export function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -63,7 +64,7 @@ export function ProfileDropdown() {
         {/* Profile Picture */}
         <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
           {user.avatar_url ? (
-            <img
+            <Image
               src={user.avatar_url}
               alt={`${user.first_name || user.username}'s avatar`}
               className="w-full h-full object-cover"

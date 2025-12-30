@@ -1,102 +1,64 @@
 'use client';
 
 import { useState } from 'react';
-import { Database } from '@influencer-platform/db';
 import { CheckCircle2, XCircle, User, Building, Calendar, ExternalLink } from 'lucide-react';
 import { trpc } from '@/lib/trpc/client';
+import { ProspectResponse } from '@influencer-platform/shared';
 
-type ProspectUser = Database['public']['Tables']['prospect_users']['Row'];
+type ModalState = 
+  | { type: 'none' }
+  | { type: 'approve'; prospect: ProspectResponse }
+  | { type: 'reject'; prospect: ProspectResponse; reason: string }
+  | { type: 'error'; title: string; message: string; details?: string };
 
 export function ProspectsTable() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
-  const [approveModal, setApproveModal] = useState<{ isOpen: boolean; prospect: ProspectUser | null }>({
-    isOpen: false,
-    prospect: null
-  });
-  const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; prospect: ProspectUser | null }>({
-    isOpen: false,
-    prospect: null
-  });
-  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; title: string; message: string; details?: string }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    details: ''
-  });
-  const [rejectionReason, setRejectionReason] = useState('');
+  const [modal, setModal] = useState<ModalState>({ type: 'none' });
 
-  // Use tRPC query for fetching prospects
   const { data: prospects = [], isLoading: loading, refetch } = trpc.admin.getProspects.useQuery();
 
   const approveMutation = trpc.admin.approveProspect.useMutation({
     onSuccess: async () => {
       await refetch();
-      setApproveModal({ isOpen: false, prospect: null });
+      setModal({ type: 'none' });
+      setActionLoading(null);
     },
     onError: (error) => {
-      setErrorModal({
-        isOpen: true,
+      setModal({
+        type: 'error',
         title: 'Approval Failed',
         message: error.message || 'Failed to approve prospect',
         details: error.message
       });
+      setActionLoading(null);
     },
   });
-
-  const approveProspect = async (prospectId: string) => {
-    setActionLoading(prospectId);
-    try {
-      await approveMutation.mutateAsync({ prospectId });
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   const rejectMutation = trpc.admin.rejectProspect.useMutation({
     onSuccess: async () => {
       await refetch();
-      setRejectModal({ isOpen: false, prospect: null });
-      setRejectionReason('');
+      setModal({ type: 'none' });
+      setActionLoading(null);
     },
     onError: (error) => {
-      setErrorModal({
-        isOpen: true,
+      setModal({
+        type: 'error',
         title: 'Rejection Failed',
         message: error.message || 'Failed to reject prospect',
         details: error.message
       });
+      setActionLoading(null);
     },
   });
 
-  const rejectProspect = async (prospectId: string, reason: string) => {
-    setActionLoading(prospectId);
-    try {
-      await rejectMutation.mutateAsync({ prospectId, reason });
-    } finally {
-      setActionLoading(null);
-    }
+  const handleApprove = async (prospect: ProspectResponse) => {
+    setActionLoading(prospect.id);
+    await approveMutation.mutateAsync({ prospectId: prospect.id });
   };
 
-  const openApproveModal = (prospect: ProspectUser) => {
-    setApproveModal({ isOpen: true, prospect });
-  };
-
-  const openRejectModal = (prospect: ProspectUser) => {
-    setRejectModal({ isOpen: true, prospect });
-    setRejectionReason('');
-  };
-
-  const handleApprove = () => {
-    if (approveModal.prospect) {
-      approveProspect(approveModal.prospect.id);
-    }
-  };
-
-  const handleReject = () => {
-    if (rejectModal.prospect) {
-      rejectProspect(rejectModal.prospect.id, rejectionReason);
-    }
+  const handleReject = async (prospect: ProspectResponse, reason: string) => {
+    setActionLoading(prospect.id);
+    await rejectMutation.mutateAsync({ prospectId: prospect.id, reason });
   };
 
   const getStatusColor = (status: string) => {
@@ -205,7 +167,7 @@ export function ProspectsTable() {
                         {prospect.status === 'pending' && (
                           <>
                             <button
-                              onClick={() => openApproveModal(prospect)}
+                              onClick={() => setModal({ type: 'approve', prospect })}
                               disabled={actionLoading === prospect.id}
                               className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
                             >
@@ -213,7 +175,7 @@ export function ProspectsTable() {
                               {actionLoading === prospect.id ? 'Processing...' : 'Approve'}
                             </button>
                             <button
-                              onClick={() => openRejectModal(prospect)}
+                              onClick={() => setModal({ type: 'reject', prospect, reason: '' })}
                               disabled={actionLoading === prospect.id}
                               className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
                             >
@@ -237,122 +199,117 @@ export function ProspectsTable() {
         )}
       </div>
 
-      {/* Approve Modal */}
-      {approveModal.isOpen && approveModal.prospect && (
+      {/* Unified Modal */}
+      {modal.type !== 'none' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Approval</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to approve <strong>{approveModal.prospect.first_name} {approveModal.prospect.last_name}</strong>?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setApproveModal({ isOpen: false, prospect: null })}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                disabled={actionLoading === approveModal.prospect.id}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApprove}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                disabled={actionLoading === approveModal.prospect.id}
-              >
-                {actionLoading === approveModal.prospect.id ? 'Approving...' : 'Approve'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reject Modal */}
-      {rejectModal.isOpen && rejectModal.prospect && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Application</h3>
-            <p className="text-gray-600 mb-4">
-              You are about to reject <strong>{rejectModal.prospect.first_name} {rejectModal.prospect.last_name}</strong>&apos;s application.
-            </p>
-            <div className="mb-6">
-              <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">
-                Reason for rejection (optional):
-              </label>
-              <textarea
-                id="rejectionReason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                rows={3}
-                placeholder="Enter reason for rejection..."
-                disabled={actionLoading === rejectModal.prospect.id}
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setRejectModal({ isOpen: false, prospect: null });
-                  setRejectionReason('');
-                }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                disabled={actionLoading === rejectModal.prospect.id}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReject}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                disabled={actionLoading === rejectModal.prospect.id}
-              >
-                {actionLoading === rejectModal.prospect.id ? 'Rejecting...' : 'Reject Application'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Error Modal */}
-      {errorModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between mb-4">
-              <h3 className="text-lg font-semibold text-red-600 flex items-center">
-                <XCircle className="h-5 w-5 mr-2" />
-                {errorModal.title}
-              </h3>
-              <button
-                onClick={() => setErrorModal({ isOpen: false, title: '', message: '', details: '' })}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Error Message:</h4>
-                <p className="text-gray-700 bg-red-50 p-3 rounded-lg border border-red-200">
-                  {errorModal.message}
+            {modal.type === 'approve' && (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Approval</h3>
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to approve <strong>{modal.prospect.first_name} {modal.prospect.last_name}</strong>?
                 </p>
-              </div>
-
-              {errorModal.details && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Technical Details:</h4>
-                  <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200 font-mono whitespace-pre-wrap overflow-x-auto">
-                    {errorModal.details}
-                  </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setModal({ type: 'none' })}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    disabled={!!actionLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleApprove(modal.prospect)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    disabled={!!actionLoading}
+                  >
+                    {actionLoading ? 'Approving...' : 'Approve'}
+                  </button>
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setErrorModal({ isOpen: false, title: '', message: '', details: '' })}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Close
-              </button>
-            </div>
+            {modal.type === 'reject' && (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Application</h3>
+                <p className="text-gray-600 mb-4">
+                  You are about to reject <strong>{modal.prospect.first_name} {modal.prospect.last_name}</strong>&apos;s application.
+                </p>
+                <div className="mb-6">
+                  <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for rejection (optional):
+                  </label>
+                  <textarea
+                    id="rejectionReason"
+                    value={modal.reason}
+                    onChange={(e) => setModal({ ...modal, reason: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    rows={3}
+                    placeholder="Enter reason for rejection..."
+                    disabled={!!actionLoading}
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setModal({ type: 'none' })}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    disabled={!!actionLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleReject(modal.prospect, modal.reason)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    disabled={!!actionLoading}
+                  >
+                    {actionLoading ? 'Rejecting...' : 'Reject Application'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {modal.type === 'error' && (
+              <>
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-red-600 flex items-center">
+                    <XCircle className="h-5 w-5 mr-2" />
+                    {modal.title}
+                  </h3>
+                  <button
+                    onClick={() => setModal({ type: 'none' })}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Error Message:</h4>
+                    <p className="text-gray-700 bg-red-50 p-3 rounded-lg border border-red-200">
+                      {modal.message}
+                    </p>
+                  </div>
+
+                  {modal.details && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Technical Details:</h4>
+                      <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200 font-mono whitespace-pre-wrap overflow-x-auto">
+                        {modal.details}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => setModal({ type: 'none' })}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

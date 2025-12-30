@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 import { router, adminProcedure } from '../init';
-import { ApproveProspectResponseSchema, RejectProspectResponseSchema } from '@influencer-platform/shared';
+import { ApproveProspectResponseSchema, ProspectResponseSchema, RejectProspectResponseSchema } from '@influencer-platform/shared';
 import { createServerSupabaseAdmin, approveProspectUser, rejectProspectUser } from '@/lib/admin';
 
 export const adminRouter = router({
@@ -13,22 +13,7 @@ export const adminRouter = router({
    */
   getProspects: adminProcedure
     .input(z.object({}).optional())
-    .output(z.array(z.object({
-      id: z.string().uuid(),
-      first_name: z.string(),
-      last_name: z.string(),
-      email: z.string().email(),
-      company: z.string().nullable(),
-      job_title: z.string().nullable(),
-      years_experience: z.string().nullable(),
-      linkedin_url: z.string().nullable(),
-      status: z.enum(['pending', 'approved', 'rejected']),
-      rejection_reason: z.string().nullable(),
-      created_at: z.string(),
-      updated_at: z.string(),
-      reviewed_at: z.string().nullable(),
-      reviewed_by: z.string().nullable(),
-    })))
+    .output(ProspectResponseSchema.array())
     .query(async () => {
       const supabase = await createServerSupabaseAdmin();
       
