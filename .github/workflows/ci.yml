@@ -39,7 +39,7 @@ jobs:
         run: pnpm typecheck
 
       - name: Build
-        run: pnpm build
+        run: echo "Build is done on Cloudflare Pages. Failed Builds will not deploy."
 
   security-scan:
     runs-on: ubuntu-latest
