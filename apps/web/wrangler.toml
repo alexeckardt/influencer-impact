@@ -5,6 +5,11 @@ compatibility_flags = ["nodejs_compat"]
 # Main worker configuration for OpenNext Cloudflare
 main = ".worker-next/index.mjs"
 
+# Static assets configuration
+[assets]
+directory = ".worker-next/assets"
+binding = "ASSETS"
+
 [observability]
 enabled = true
 
