@@ -1,5 +1,10 @@
 .env.local
 node_modules/
 .next/
+.open-next/
+.worker-next/
 dist/
 .turbo/
+.dev.vars
+.wrangler/
+wrangler.toml.backup

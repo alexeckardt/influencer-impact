@@ -14,7 +14,14 @@
     "typecheck": "turbo run typecheck",
     "type-check": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    
+    "web:dev": "pnpm --filter @influencer-platform/web dev",
+    "web:build": "pnpm --filter @influencer-platform/web build",
+    "web:cf:build": "pnpm --filter @influencer-platform/web build:cf",
+    "web:preview": "pnpm --filter @influencer-platform/web preview",
+    "web:deploy": "pnpm --filter @influencer-platform/web deploy"
+  
   },
   "devDependencies": {
     "@types/node": "^20",

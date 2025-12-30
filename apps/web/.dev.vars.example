@@ -1,0 +1,17 @@
+# Local development environment variables for Wrangler
+# Copy this file to .dev.vars and add your actual values
+# .dev.vars is gitignored and should NOT be committed
+
+# COPY LOCAL ENV VARS for the use of 'wrangler dev` -- testing cloudflare stuff
+
+# Supabase Configuration (Public - safe for frontend)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Supabase Configuration (Private - backend only)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SB_SECRET=your-service-role-key
+
+# Meilisearch (optional)
+NEXT_PUBLIC_MEILISEARCH_URL=http://localhost:7700
+NEXT_PUBLIC_MEILISEARCH_KEY=dev-key-12345
