@@ -11,40 +11,145 @@
 
 ---
 
-## Frontend Deployment (Vercel)
+## Frontend Deployment (Cloudflare Pages)
+
+### Why Cloudflare Pages?
+
+- ✅ **FREE** team collaboration (no paid team required)
+- ✅ Excellent Next.js support with @cloudflare/next-on-pages
+- ✅ Automatic PR preview deployments
+- ✅ Fastest global CDN
+- ✅ Unlimited bandwidth and requests
+- ✅ Free environment variables management
 
 ### Initial Setup
 
-1. **Push to GitHub**
+1. **Install Cloudflare Adapter**
    ```bash
-   git remote add origin https://github.com/your-org/influencer-review-platform
+   pnpm add -D @cloudflare/next-on-pages
+   ```
+
+2. **Update package.json Build Script**
+   
+   In `apps/web/package.json`:
+   ```json
+   {
+     "scripts": {
+       "pages:build": "npx @cloudflare/next-on-pages",
+       "preview": "npx wrangler pages dev .vercel/output/static",
+       "deploy": "pnpm pages:build && wrangler pages deploy .vercel/output/static"
+     }
+   }
+   ```
+
+3. **Push to GitHub**
+   ```bash
+   git remote add origin https://github.com/owenlikeocean/influencer-review-platform
    git push -u origin main
    ```
 
-2. **Connect to Vercel**
-   - Visit [vercel.com](https://vercel.com)
-   - Click "New Project"
-   - Import from GitHub repository
-   - Select `apps/web` as root directory
-
-3. **Configure Environment Variables**
+4. **Connect to Cloudflare Pages**
    
-   In Vercel Dashboard → Settings → Environment Variables:
+   a. Visit [dash.cloudflare.com](https://dash.cloudflare.com)
    
+   b. Go to **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**
+   
+   c. Authorize GitHub and select your repository
+   
+   d. Configure build settings:
    ```
-   NEXT_PUBLIC_SUPABASE_URL
-   Production: https://your-prod-project.supabase.co
-   Preview: https://your-preview-project.supabase.co
+   Framework preset: Next.js
+   Build command: pnpm turbo run build --filter=web
+   Build output directory: apps/web/.vercel/output/static
+   Root directory: (leave empty or set to root)
+   ```
    
-   NEXT_PUBLIC_SUPABASE_ANON_KEY
-   Production: (prod anon key)
-   Preview: (preview anon key)
+   e. Add build environment variable:
+   ```
+   NODE_VERSION=20
    ```
 
-4. **Enable Automatic Deployments**
-   - Push to `main` → Production deploys
-   - Open PR → Preview deploys
-   - (Both automatic via GitHub Actions)
+5. **Configure Environment Variables**
+   
+   In Cloudflare Dashboard → Workers & Pages → Your Project → **Settings** → **Environment variables**:
+   
+   **Production Environment:**
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG... (your anon key)
+   SUPABASE_SERVICE_ROLE_KEY=eyJhbG... (mark as encrypted/secret)
+   ```
+   
+   **Preview Environment** (for PRs):
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG... (can be same as prod or separate staging)
+   SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
+   ```
+
+6. **Enable Automatic Deployments**
+   - Push to `main` → Production deployment
+   - Open PR → Preview deployment (automatic)
+   - Cloudflare builds and validates each deployment
+
+### Environment Variables Strategy
+
+**For Pull Request Validation:**
+
+Create `.github/workflows/pr-check.yml`:
+
+```yaml
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Lint
+        run: pnpm lint
+      
+      - name: Type check
+        run: pnpm typecheck
+      
+      # Build validation happens in Cloudflare Pages preview deployment
+      # No need to duplicate env vars here
+```
+
+**Why this approach?**
+- ✅ **Single source of truth**: Env vars only in Cloudflare Pages
+- ✅ **PR validation**: Cloudflare automatically builds previews for PRs
+- ✅ **Build verification**: Failed builds = failed deployments (visible immediately)
+- ✅ **Code quality**: GitHub Actions validates linting and type checking
+- ✅ **No duplication**: No need to sync env vars between GitHub and Cloudflare
+
+**If you need build validation in CI:**
+
+Add GitHub Secrets (`Settings` → `Secrets and variables` → `Actions`):
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+Then update workflow to include build step with env vars.
 
 ### Post-Deployment
 
