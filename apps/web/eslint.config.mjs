@@ -1,5 +1,15 @@
+import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
-import next from 'eslint-config-next';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+});
 
 const config = [
   {
@@ -11,8 +21,7 @@ const config = [
       'dist/**',
     ],
   },
-  js.configs.recommended,
-  ...next,
+  ...compat.extends('next/core-web-vitals'),
   {
     rules: {
       'react-hooks/rules-of-hooks': 'error',

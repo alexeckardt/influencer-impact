@@ -38,10 +38,10 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   user: User | null;
-  // eslint-disable-next-line
+   
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  // eslint-disable-next-line
+   
   updateUser: (user: User) => void;
 }
 
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     console.log('🔍 loadUserProfile started for user:', supabaseUser.id);
@@ -197,9 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
+    // Don't set loading here - the auth listener will handle it
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -207,15 +207,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         throw error;
       }
-
-      if (data.user) {
-        await loadUserProfile(data.user);
-      }
+      
+      // Don't call loadUserProfile here - the onAuthStateChange listener
+      // will automatically handle the SIGNED_IN event and load the profile
     } catch (error) {
       console.error('Sign in error:', error);
-      throw error;
-    } finally {
+      // On error, make sure loading state is cleared
       setIsLoading(false);
+      throw error;
     }
   };
 
