@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Cache the admin client to avoid recreating it on every request
-let adminClient: ReturnType<typeof createClient> | null = null;
+let adminClient: SupabaseClient<any> | null = null;
 
 // Define the prospect user type directly since our Database type might not be complete
 type ProspectUser = {
