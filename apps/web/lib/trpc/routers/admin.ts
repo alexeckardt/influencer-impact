@@ -15,6 +15,7 @@ export const adminRouter = router({
     .input(z.object({}).optional())
     .output(ProspectResponseSchema.array())
     .query(async () => {
+
       // Use the admin client - it's already created with service role key
       const supabase = await createServerSupabaseAdmin();
       
@@ -26,6 +27,8 @@ export const adminRouter = router({
       if (error) {
         throw new Error(`Failed to fetch prospects: ${error.message}`);
       }
+
+      console.log("Fetched prospects:", data);
 
       return data || [];
     }),

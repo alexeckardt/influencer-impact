@@ -26,10 +26,10 @@ export const ProspectResponseSchema = z.object({
   job_title: z.string().nullable(),
   linkedin_url: z.string().url().nullable(),
   years_experience: z.string().nullable(),
-  bio: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
-  reviewed_at: z.string(),
+  reviewed_at: z.string().nullable(),
+  reviewed_by: z.string().uuid().nullable(),
   rejection_reason: z.string().nullable(),
 });
 export type ProspectResponse = z.infer<typeof ProspectResponseSchema>;
