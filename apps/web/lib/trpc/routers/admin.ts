@@ -14,7 +14,8 @@ export const adminRouter = router({
   getProspects: adminProcedure
     .input(z.object({}).optional())
     .output(ProspectResponseSchema.array())
-    .query(async () => {
+    .query(async ({ ctx }) => {
+      // Use the admin client from context - it's already created with service role key
       const supabase = await createServerSupabaseAdmin();
       
       const { data, error } = await supabase

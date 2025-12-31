@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Flag, AlertTriangle, Calendar } from 'lucide-react';
 import { ReviewReportModal } from '@/components/ReviewReportModal';
+import { trpc } from '@/lib/trpc/client';
 
 interface ReviewReport {
   id: string;
@@ -40,47 +41,24 @@ interface ReviewReport {
 }
 
 export function ReviewReportsTable() {
-  const [reviewReports, setReviewReports] = useState<ReviewReport[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<ReviewReport | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [showAllReports, setShowAllReports] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalReports, setTotalReports] = useState(0);
   const reportsPerPage = 10;
 
-  const fetchReviewReports = useCallback(async () => {
-    try {
-      setReportsLoading(true);
-      const params = new URLSearchParams();
-      if (showAllReports) {
-        params.append('all', 'true');
-      }
+  // Use tRPC query to fetch review reports
+  const { data, isLoading: reportsLoading, refetch } = trpc.reviewReports.getReports.useQuery({
+    showAll: showAllReports,
+  });
 
-      const url = `/api/admin/review-reports${params.toString() ? '?' + params.toString() : ''}`;
-      const response = await fetch(url);
+  const reviewReports = data?.reports || [];
+  const totalReports = reviewReports.length;
 
-      if (response.ok) {
-        const data = await response.json();
-        const allReports = data.reports || [];
-        setTotalReports(allReports.length);
-
-        const startIndex = (currentPage - 1) * reportsPerPage;
-        const endIndex = startIndex + reportsPerPage;
-        setReviewReports(allReports.slice(startIndex, endIndex));
-      } else {
-        console.error('Failed to fetch review reports');
-      }
-    } catch (error) {
-      console.error('Error fetching review reports:', error);
-    } finally {
-      setReportsLoading(false);
-    }
-  }, [showAllReports, currentPage]);
-
-  useEffect(() => {
-    fetchReviewReports();
-  }, [fetchReviewReports]);
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * reportsPerPage;
+  const endIndex = startIndex + reportsPerPage;
+  const paginatedReports = reviewReports.slice(startIndex, endIndex);
 
   const openReportModal = (report: ReviewReport) => {
     setSelectedReport(report);
@@ -88,7 +66,7 @@ export function ReviewReportsTable() {
   };
 
   const handleReportStatusChange = () => {
-    fetchReviewReports();
+    refetch();
   };
 
   const getRowStyle = (status: string) => {
@@ -189,7 +167,7 @@ export function ReviewReportsTable() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {reviewReports.map((report) => (
+                {paginatedReports.map((report) => (
                   <tr key={report.id} className={getRowStyle(report.status)}>
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -217,7 +195,7 @@ export function ReviewReportsTable() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
-                        {report.reasons.slice(0, 2).map((reason, idx) => (
+                        {report.reasons.slice(0, 2).map((reason: string, idx: number) => (
                           <span
                             key={idx}
                             className="inline-flex px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700"
