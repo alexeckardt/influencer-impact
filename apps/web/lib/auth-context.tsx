@@ -58,6 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const getInitialUser = async () => {
       try {
         console.log('AuthProvider: Checking initial auth state');
+        
+        // First check if we have a session
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('AuthProvider: Session exists:', !!session);
+        
+        // Then validate with getUser (this hits the server to verify)
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
         
         console.log('AuthProvider: Initial supabase user:', supabaseUser);
@@ -67,10 +73,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await loadUserProfile(supabaseUser);
         } else {
           console.log('AuthProvider: No authenticated user found');
+          setIsLoggedIn(false);
+          setUser(null);
           setIsLoading(false);
         }
       } catch (error) {
         console.error('Error getting initial user:', error);
+        setIsLoggedIn(false);
+        setUser(null);
         setIsLoading(false);
       }
       // Don't set isLoading to false here - let loadUserProfile handle it
