@@ -17,21 +17,37 @@
    │ ✓ Auth UI          │
    │ ✓ Reviews UI       │
    │ ✓ Profile UI       │
+   │ ✓ tRPC Client      │
    └─────────┬──────────┘
              │
-             │ RPC / REST API
+             │ tRPC (Type-safe API)
+             │
+   ┌─────────▼──────────────────────┐
+   │  Next.js API Routes             │
+   │  /api/trpc/[trpc]               │
+   │                                  │
+   │  tRPC Routers:                  │
+   │  • reviewReports                │
+   │  • reviews                      │
+   │  • influencers                  │
+   │  • admin                        │
+   └─────────┬──────────────────────┘
+             │
+             │ Database Queries
              │
    ┌─────────▼──────────────────────┐
    │  Supabase                       │
    │  ┌─────────────────────────────┤
    │  │ PostgreSQL Database         │
    │  │ ┌──────────────────────────┤
-   │  │ │ Tables (6):              │
+   │  │ │ Tables (8):              │
    │  │ │ • users                  │
+   │  │ │ • prospect_users         │
    │  │ │ • influencers            │
    │  │ │ • influencer_handles     │
    │  │ │ • reviews                │
    │  │ │ • review_labels          │
+   │  │ │ • review_reports         │
    │  │ │ • influencer_stats       │
    │  │ └──────────────────────────┤
    │  │                             │
@@ -43,7 +59,17 @@
    │ Authentication                  │
    │ • Email/Password                │
    │ • Session management            │
-   └────────┬──────────────────────┘
+   └────────┬──────────────────────┬┘
+            │                      │
+            │                      │ Trigger: User Approved
+            │                      │
+            │              ┌───────▼────────────┐
+            │              │ Resend (Email API) │
+            │              │                    │
+            │              │ ✓ Approval emails  │
+            │              │ ✓ Temp passwords   │
+            │              │ ✓ Notifications    │
+            │              └────────────────────┘
             │
             │ Service Role Access (Backend Only)
             │
@@ -77,8 +103,16 @@ User Browser
     │        ├─ Validate with Zod
     │        │
     │        ▼
+    │   tRPC Client
+    │   (Type-safe API call)
+    │        │
+    │        ▼
+    │   tRPC Server Router
+    │   (apps/web/lib/trpc/routers)
+    │        │
+    │        ▼
     │   Supabase Client
-    │   (Anon Key)
+    │   (Server-side)
     │        │
     │        ▼
     │   PostgreSQL
@@ -173,9 +207,10 @@ packages/db (Database)
 │                                                          │
 │  NEXT_PUBLIC_SUPABASE_URL    ✅ OK (public)             │
 │  NEXT_PUBLIC_SUPABASE_ANON_KEY ✅ OK (limited scope)    │
+│  NEXT_PUBLIC_SITE_URL         ✅ OK (public)            │
 │                                                          │
 └──────────────────┬───────────────────────────────────────┘
-                   │ RLS Policies
+                   │ RLS Policies + tRPC Auth
                    │
 ┌──────────────────▼───────────────────────────────────────┐
 │ DATABASE (Supabase Postgres)                            │
@@ -192,11 +227,13 @@ packages/db (Database)
 │ PRIVATE (Backend Only)                                   │
 │                                                          │
 │  SUPABASE_URL                ❌ NEVER in frontend       │
-│  SUPABASE_SB_SECRET   ❌ NEVER in frontend       │
-│  (Only in Cloud Run / Lambda)                           │
+│  SUPABASE_SB_SECRET          ❌ NEVER in frontend       │
+│  RESEND_API_KEY              ❌ NEVER in frontend       │
+│  RESEND_FROM_EMAIL           ❌ NEVER in frontend       │
+│  (Only in API routes / Cloud Run)                       │
 │                                                          │
 │  Can read/write all data                                │
-│  (For stats aggregation, moderation, etc.)              │
+│  (For stats aggregation, moderation, emails)            │
 │                                                          │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -385,6 +422,7 @@ All can be added without rearchitecting.
 
 1. **Separation of Concerns**
    - Frontend (UI)
+   - tRPC Layer (Type-safe API)
    - Backend (Jobs)
    - Shared (Types)
    - Database (Schema)
@@ -392,10 +430,12 @@ All can be added without rearchitecting.
 2. **Type Safety**
    - Zod validation
    - TypeScript inference
+   - tRPC end-to-end types
    - Compile-time checks
 
 3. **Security by Default**
    - RLS policies
+   - tRPC authentication
    - Environment separation
    - Secrets management
 
@@ -403,11 +443,19 @@ All can be added without rearchitecting.
    - Denormalized stats
    - Indexed queries
    - Async processing
+   - Cached admin client
 
 5. **Developer Experience**
    - Monorepo structure
    - Fast builds
+   - Type-safe APIs (tRPC)
    - Clear documentation
+
+6. **Serverless-First**
+   - Vercel deployment
+   - Resend for emails
+   - No SMTP connections
+   - Auto-scaling
 
 ---
 
