@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+  let supabaseResponse = NextResponse.next({
+    request: req,
+  });
   
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,13 +17,16 @@ export async function middleware(req: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            req.cookies.set(name, value);
-            res.cookies.set(name, value, options);
+            supabaseResponse.cookies.set(name, value, options);
           });
         },
       },
     }
   );
+
+  // IMPORTANT: Refresh the session to ensure cookies are up to date
+  // This ensures the client and middleware stay in sync
+  await supabase.auth.getSession();
 
   // Get authenticated user (validates with server instead of just reading cookies)
   const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -35,7 +40,9 @@ export async function middleware(req: NextRequest) {
   // 1. If NOT logged in (no user or user error), allow access to /login and /register
   if (!user || userError) {
     if (isAuthRoute || pathname === '/') {
-      return NextResponse.next();
+      // Add header to indicate no auth in middleware
+      supabaseResponse.headers.set('x-middleware-auth', 'none');
+      return supabaseResponse;
     }
     // For all other routes, redirect to login
     const redirectUrl = req.nextUrl.clone();
@@ -56,18 +63,14 @@ export async function middleware(req: NextRequest) {
     if (error || !dbUser) {
       await supabase.auth.signOut();
       
-      // Clear all Supabase-related cookies
-      const cookiesToDelete = ['sb-access-token', 'sb-refresh-token', 'sb-auth-token'];
-      cookiesToDelete.forEach(cookieName => {
-        // Try to delete with different naming patterns Supabase might use
-        res.cookies.delete(cookieName);
-        res.cookies.delete(`${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`);
-      });
-      
       const redirectUrl = req.nextUrl.clone();
       redirectUrl.pathname = '/login';
       return NextResponse.redirect(redirectUrl);
     }
+
+    // Add header to indicate authenticated in middleware
+    supabaseResponse.headers.set('x-middleware-auth', 'authenticated');
+    supabaseResponse.headers.set('x-user-id', user.id);
 
     // Check if user is trying to access admin routes
     if (pathname.startsWith('/admin')) {
@@ -91,8 +94,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    // Otherwise, allow access
-    return res;
+    // Otherwise, allow access and ensure cookies are propagated
+    return supabaseResponse;
   } catch (error) {
     console.error('Error checking user status:', error);
     const redirectUrl = req.nextUrl.clone();
