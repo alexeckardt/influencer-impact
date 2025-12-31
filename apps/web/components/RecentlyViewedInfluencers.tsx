@@ -97,7 +97,9 @@ export function RecentlyViewedInfluencers({ perPage = 12 }: RecentlyViewedInflue
                     <ImageWithFallback
                       src={influencer.profileImageUrl ?? undefined}
                       alt={influencer.name}
-                      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                      className="rounded-full object-cover flex-shrink-0"
+                      width={64}
+                      height={64}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">

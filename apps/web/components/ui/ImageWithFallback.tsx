@@ -6,14 +6,18 @@ import { ImgHTMLAttributes, useState } from 'react';
 interface ImageWithFallbackProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'width' | 'height'> {
   src?: string;
   alt: string;
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
+  fill?: boolean;
 }
 
 export function ImageWithFallback({
   src,
   alt,
   className = '',
+  width,
+  height,
+  fill = false,
   ...props
 }: ImageWithFallbackProps) {
 
@@ -26,6 +30,7 @@ export function ImageWithFallback({
         className={`bg-gray-200 flex items-center justify-center ${className}`}
         role="presentation"
         aria-label="Image placeholder"
+        style={{ width, height }}
         {...props}
       >
         <svg 
@@ -46,7 +51,7 @@ export function ImageWithFallback({
   }
 
   return (
-    <div className="relative">
+    <div className={fill ? "relative w-full h-full" : "relative"}>
       {isLoading && (
         <div
           className={`absolute inset-0 bg-gray-200 animate-pulse ${className}`}
@@ -56,6 +61,9 @@ export function ImageWithFallback({
       <Image
         src={src}
         alt={alt}
+        width={fill ? undefined : (width || 800)}
+        height={fill ? undefined : (height || 600)}
+        fill={fill}
         className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}`}
         onLoad={() => setIsLoading(false)}
         onError={() => {

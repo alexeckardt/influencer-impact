@@ -117,7 +117,9 @@ export function InfluencerProfile({ influencerId }: InfluencerProfileProps) {
               <ImageWithFallback
                 src={influencer.profileImageUrl || undefined}
                 alt={influencer.name}
-                className="w-32 h-32 rounded-full object-cover"
+                className="rounded-full object-cover"
+                width={128}
+                height={128}
               />
             </div>
             <div className="flex-1">
