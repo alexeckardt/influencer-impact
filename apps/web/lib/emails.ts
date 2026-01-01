@@ -1,7 +1,6 @@
 import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
+import { APPROVAL_EMAIL_TEMPLATE } from './emailtemplates';
 
 // Determine which email service to use
 const USE_GMAIL = process.env.USE_GMAIL === 'true';
@@ -48,25 +47,14 @@ export async function sendApprovalEmail(
   console.log('📧 Recipient:', to);
   console.log('📧 First Name:', firstName);
   
-  // Read the HTML template
-  const templatePath = path.join(
-    process.cwd(),
-    '/public/approval-email.html',
-  );
-  
-  console.log('📧 Template path:', templatePath);
-  
-  const template = fs.readFileSync(templatePath, 'utf-8');
-  console.log('📧 Template loaded successfully, length:', template.length);
-
   // Replace placeholders with dynamic values
-  const htmlContent = template
+  const htmlContent = APPROVAL_EMAIL_TEMPLATE
     .replace('{{firstName}}', firstName)
     .replace('{{email}}', to)
     .replace('{{tempPassword}}', tempPassword)
     .replace('{{appUrl}}', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
 
-  console.log('📧 Placeholders replaced in template');
+  console.log('📧 Template processed successfully');
 
   try {
     if (USE_GMAIL && gmailTransporter) {

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+export const APPROVAL_EMAIL_TEMPLATE = `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -55,4 +55,4 @@
       </div>
     </div>
   </body>
-</html>
+</html>`;
