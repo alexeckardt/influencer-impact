@@ -63,8 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('AuthProvider: Session exists:', !!session);
         
-        // Then validate with getUser (this hits the server to verify)
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        // Then validate with getUser (this hits the server to verify) with timeout
+        const getUserPromise = supabase.auth.getUser();
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('getUser timed out after 10 seconds')), 10000)
+        );
+        
+        const { data: { user: supabaseUser } } = await Promise.race([getUserPromise, timeoutPromise]);
         
         console.log('AuthProvider: Initial supabase user:', supabaseUser);
 
@@ -96,8 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('✅ SIGNED_IN event, getting authenticated user');
           setIsLoading(true); // Set loading while we load the profile
           
-          // Use getUser() instead of session.user for security
-          const { data: { user: authenticatedUser }, error } = await supabase.auth.getUser();
+          // Use getUser() instead of session.user for security with timeout
+          const getUserPromise = supabase.auth.getUser();
+          const timeoutPromise = new Promise<{ data: { user: null }, error: Error }>((resolve) => 
+            setTimeout(() => resolve({ 
+              data: { user: null }, 
+              error: new Error('getUser timed out after 10 seconds') 
+            }), 10000)
+          );
+          
+          const { data: { user: authenticatedUser }, error } = await Promise.race([getUserPromise, timeoutPromise]);
           
           if (error) {
             console.error('❌ Failed to get authenticated user:', error);
@@ -199,10 +212,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     // Don't set loading here - the auth listener will handle it
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // Add timeout to sign in operation
+      const signInPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Sign in timed out. Something went wrong, please try again.')), 15000)
+      );
+      
+      const { error } = await Promise.race([signInPromise, timeoutPromise]);
 
       if (error) {
         throw error;

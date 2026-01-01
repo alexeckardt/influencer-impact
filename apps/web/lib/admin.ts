@@ -1,8 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import type { SupabaseClient } from '@supabase/supabase-js';
-
-// Cache the admin client to avoid recreating it on every request
-let adminClient: SupabaseClient<any> | null = null;
 
 // Define the prospect user type directly since our Database type might not be complete
 type ProspectUser = {
@@ -29,10 +25,7 @@ type ProspectUser = {
  */
 
 export async function createServerSupabaseAdmin() {
-  // Return cached client if it exists
-  if (adminClient) {
-    return adminClient;
-  }
+  // Don't cache in serverless - each invocation should create fresh client
 
   // Check for required environment variables
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -44,7 +37,7 @@ export async function createServerSupabaseAdmin() {
   }
 
   // Use createClient for admin operations with secret key - no cookies needed
-  adminClient = createClient(
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SB_SECRET!, // Admin secret key for elevated operations
     {
@@ -55,8 +48,6 @@ export async function createServerSupabaseAdmin() {
       },
     }
   );
-
-  return adminClient;
 }
 
 /**
