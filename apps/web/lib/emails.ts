@@ -30,6 +30,10 @@ if (USE_GMAIL) {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
     },
+    connectionTimeout: 10000, // 10 seconds //TODO: adjust timeouts (LOWER) as needed when using serverless Resend
+    greetingTimeout: 10000,
+    socketTimeout: 20000, // 20 seconds
+    pool: false, // Don't use connection pooling in serverless
   });
   
   console.log('📧 Email configured to use Gmail:', process.env.GMAIL_USER);
@@ -60,16 +64,29 @@ export async function sendApprovalEmail(
     if (USE_GMAIL && gmailTransporter) {
       // Send via Gmail SMTP
       console.log('📧 Sending email via Gmail SMTP...');
+      console.log('📧 SMTP Config:', {
+        host: 'smtp.gmail.com',
+        port: 587,
+        user: process.env.GMAIL_USER,
+      });
       
-      const info = await gmailTransporter.sendMail({
+      // Add a timeout wrapper for the entire operation
+      const sendPromise = gmailTransporter.sendMail({
         from: `"Influencer Review Platform" <${process.env.GMAIL_USER}>`,
         to,
         subject: 'Your Application Has Been Approved!',
         html: htmlContent,
       });
       
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Email sending timed out after 25 seconds')), 25000)
+      );
+      
+      const info = await Promise.race([sendPromise, timeoutPromise]) as any;
+      
       console.log('✅ Email sent successfully via Gmail!');
       console.log('📧 Message ID:', info.messageId);
+      console.log('📧 Response:', info.response);
       
       return { id: info.messageId };
     } else if (resend) {
